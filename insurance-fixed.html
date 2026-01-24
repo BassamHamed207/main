@@ -1,1 +1,1037 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Insurance Approvals Hub</title>\n</head>\n<body>\n    <h1>Insurance Approvals Hub</h1>\n    <div id="content">\n        <p>Your insurance approvals will be displayed here.</p>\n    </div>\n    <script>\n        // This function fetches insurance approvals carefully handling records limitation\n        async function fetchInsuranceApprovals(page) {\n            const recordsPerPage = 50000; // Limit of records per page due to API restrictions\n            const url = `https://api.example.com/insurance-approvals?page=${page}&limit=${recordsPerPage}`;\n            const response = await fetch(url);\n            if (!response.ok) {\n                throw new Error(Error fetching data: ${response.statusText}');\n            }\n            const data = await response.json();\n            return data;\n        }\n\n        async function loadAllApprovals() {\n            let page = 0;\n            let allApprovals = [];\n            while (true) {\n                const approvals = await fetchInsuranceApprovals(page);\n                if (approvals.length === 0) break; // Exit if no more data\n                allApprovals = allApprovals.concat(approvals);\n                page++;\n            }\n            displayApprovals(allApprovals);\n        }\n\n        function displayApprovals(approvals) {\n            const contentDiv = document.getElementById('content');\n            approvals.forEach(approval => {\n                const para = document.createElement('p');\n                para.textContent = approval.description; // Displaying approval description\n                contentDiv.appendChild(para);\n            });\n        }\n\n        loadAllApprovals(); // Initial call to load approvals\n    <\/script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Insurance Approvals Hub</title>
+  <style>
+    :root{--primary:#0078d4;--primary-dark:#106ebe;--bg:#f3f2f1;--card:#fff;--border:#e1dfdd;--text:#323130;--muted:#605e5c;--success:#107c10;--danger:#d13438;--warning:#ffaa44;--radius:6px;--shadow:0 2px 8px rgba(0,0,0,.08);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+    .header{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px;box-shadow:var(--shadow);}
+    .header h1{font-size:20px;font-weight:600;}
+    .header .subtitle{opacity:.85;font-size:13px;}
+    .container{max-width:1400px;margin:0 auto;padding:20px;}
+    .filters{background:var(--card);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+    .filter-group{display:flex;flex-direction:column;gap:4px;}
+    .filter-group label{font-size:12px;color:var(--muted);font-weight:500;}
+    .filter-group select,.filter-group input{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;min-width:140px;}
+    .filter-group select:focus,.filter-group input:focus{outline:none;border-color:var(--primary);}
+    .btn{padding:8px 16px;border:none;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s ease;}
+    .btn-primary{background:var(--primary);color:#fff;}
+    .btn-primary:hover{background:var(--primary-dark);}
+    .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border);}
+    .btn-secondary:hover{background:var(--bg);}
+    .btn-danger{background:var(--danger);color:#fff;}
+    .btn-danger:hover{background:#a52a2a;}
+    .btn-success{background:var(--success);color:#fff;}
+    .btn-success:hover{background:#0a5a0a;}
+    .btn:disabled{opacity:.5;cursor:not-allowed;}
+    .tabs{display:flex;gap:0;margin-bottom:20px;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+    .tab{flex:1;padding:14px 20px;text-align:center;cursor:pointer;font-weight:500;border-bottom:3px solid transparent;transition:all .15s ease;}
+    .tab:hover{background:var(--bg);}
+    .tab.active{border-bottom-color:var(--primary);color:var(--primary);background:#f0f7ff;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+    .stat-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+    .stat-card .value{font-size:28px;font-weight:600;color:var(--primary);}
+    .stat-card .label{color:var(--muted);font-size:12px;margin-top:4px;}
+    .card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:20px;}
+    .card h3{font-size:16px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:12px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;}
+    th{background:var(--bg);font-weight:600;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
+    tr:hover{background:#fafafa;}
+    .badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:500;}
+    .badge-pending{background:#fff3cd;color:#856404;}
+    .badge-approved{background:#d4edda;color:#155724;}
+    .badge-rejected{background:#f8d7da;color:#721c24;}
+    .badge-requested{background:#cce5ff;color:#004085;}
+    .badge-replied{background:#e2e3e5;color:#383d41;}
+    .chart-container{height:300px;position:relative;}
+    .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted);}
+    .loading::after{content:'';width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin-left:12px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .empty-state{text-align:center;padding:40px;color:var(--muted);}
+    .pagination{display:flex;justify-content:center;gap:8px;margin-top:20px;}
+    .pagination button{min-width:36px;}
+    .checkbox-cell{width:40px;}
+    .checkbox-cell input{width:16px;height:16px;cursor:pointer;}
+    .bulk-actions{display:flex;gap:12px;margin-bottom:16px;align-items:center;}
+    .selected-count{font-size:13px;color:var(--muted);}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
+    .modal-overlay.active{display:flex;}
+    .modal{background:var(--card);border-radius:var(--radius);width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+    .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .modal-header h3{font-size:16px;}
+    .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);}
+    .modal-body{padding:20px;}
+    .modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;}
+    .form-group{margin-bottom:16px;}
+    .form-group label{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-bottom:6px;}
+    .form-group label.required::after{content:' *';color:var(--danger);}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;}
+    .form-group textarea{resize:vertical;min-height:80px;}
+    .toast{position:fixed;bottom:20px;right:20px;background:#323130;color:#fff;padding:12px 20px;border-radius:var(--radius);box-shadow:var(--shadow);z-index:1001;animation:slideIn .3s ease;}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    .sla-indicator{display:inline-flex;align-items:center;gap:6px;}
+    .sla-dot{width:8px;height:8px;border-radius:50%;}
+    .sla-dot.green{background:var(--success);}
+    .sla-dot.yellow{background:var(--warning);}
+    .sla-dot.red{background:var(--danger);}
+    .dim-chart{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+    .dim-item{background:var(--bg);padding:12px;border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;}
+    .dim-item .name{font-size:13px;color:var(--text);}
+    .dim-item .count{font-weight:600;color:var(--primary);}
+    .lookup-picker{display:flex;gap:8px;align-items:center;}
+    .lookup-picker .picked-value{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:#fafafa;min-height:38px;}
+    .lookup-picker .picked-value.muted{color:var(--muted);font-style:italic;}
+    .file-input-wrapper{position:relative;}
+    .file-input-wrapper input[type="file"]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;}
+    .file-input-label{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--muted);}
+    .file-input-label:hover{border-color:var(--primary);background:#f0f7ff;}
+    .file-name{font-size:12px;color:var(--text);margin-top:4px;}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Insurance Approvals Hub</h1>
+      <div class="subtitle">Manage and track insurance approval requests</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filters">
+      <div class="filter-group">
+        <label>Business Unit</label>
+        <select id="filterBU"><option value="">All Units</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Category</label>
+        <select id="filterCat"><option value="">All Categories</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select id="filterStatus">
+          <option value="">All Statuses</option>
+          <option value="884670000">Not Required</option>
+          <option value="884670001">Requested</option>
+          <option value="884670002">Replied</option>
+          <option value="884670003">Approved</option>
+          <option value="884670004">Rejected</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" id="filterDateFrom">
+      </div>
+      <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" id="filterDateTo">
+      </div>
+      <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+      <button class="btn btn-secondary" id="resetFilters">Reset</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+      <div class="tab" data-tab="sla">SLA Performance</div>
+      <div class="tab" data-tab="visits">Visits</div>
+      <div class="tab" data-tab="services">Services</div>
+    </div>
+
+    <div id="overview" class="tab-content active">
+      <div class="stats-grid" id="overviewStats">
+        <div class="stat-card"><div class="value" id="statTotal">-</div><div class="label">Total Services</div></div>
+        <div class="stat-card"><div class="value" id="statRequested">-</div><div class="label">Requested</div></div>
+        <div class="stat-card"><div class="value" id="statApproved">-</div><div class="label">Approved</div></div>
+        <div class="stat-card"><div class="value" id="statRejected">-</div><div class="label">Rejected</div></div>
+      </div>
+      <div class="card">
+        <h3>Top Business Units</h3>
+        <div class="dim-chart" id="topBU"></div>
+      </div>
+      <div class="card">
+        <h3>Top Categories</h3>
+        <div class="dim-chart" id="topCat"></div>
+      </div>
+    </div>
+
+    <div id="sla" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="value" id="slaOnTime">-</div><div class="label">On-Time (&lt;24h)</div></div>
+        <div class="stat-card"><div class="value" id="slaWarning">-</div><div class="label">Warning (24-48h)</div></div>
+        <div class="stat-card"><div class="value" id="slaBreach">-</div><div class="label">Breached (&gt;48h)</div></div>
+        <div class="stat-card"><div class="value" id="slaAvg">-</div><div class="label">Avg Response Time</div></div>
+      </div>
+      <div class="card">
+        <h3>SLA by Business Unit</h3>
+        <div id="slaBU" class="dim-chart"></div>
+      </div>
+    </div>
+
+    <div id="visits" class="tab-content">
+      <div class="card">
+        <h3>Visits List</h3>
+        <div id="visitsLoading" class="loading">Loading visits...</div>
+        <table id="visitsTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Visit ID</th>
+              <th>Patient</th>
+              <th>Date</th>
+              <th>Business Unit</th>
+              <th>Services</th>
+            </tr>
+          </thead>
+          <tbody id="visitsBody"></tbody>
+        </table>
+        <div class="pagination" id="visitsPagination"></div>
+      </div>
+    </div>
+
+    <div id="services" class="tab-content">
+      <div class="card">
+        <h3>Services List</h3>
+        <div class="bulk-actions">
+          <span class="selected-count"><span id="selectedCount">0</span> selected</span>
+          <button class="btn btn-success" id="bulkApprove" disabled>Approve Selected</button>
+          <button class="btn btn-danger" id="bulkReject" disabled>Reject Selected</button>
+          <button class="btn btn-secondary" id="addComm" disabled>Add Communication</button>
+        </div>
+        <div id="servicesLoading" class="loading">Loading services...</div>
+        <table id="servicesTable" style="display:none;">
+          <thead>
+            <tr>
+              <th class="checkbox-cell"><input type="checkbox" id="selectAll"></th>
+              <th>Service</th>
+              <th>Patient</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="servicesBody"></tbody>
+        </table>
+        <div class="pagination" id="servicesPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Communication Modal (Simplified) -->
+  <div class="modal-overlay" id="commModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Communication</h3>
+        <button class="modal-close" id="closeCommModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="required">Category</label>
+          <select id="commCategory">
+            <option value="">Select category...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Comment</label>
+          <textarea id="commComment" placeholder="Enter your comment..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelComm">Cancel</button>
+        <button class="btn btn-primary" id="saveComm">Save Communication</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval Workflow Modal -->
+  <div class="modal-overlay" id="approvalModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Approval Details</h3>
+        <button class="modal-close" id="closeApprovalModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="required">Approval Method</label>
+          <select id="approvalMethod">
+            <option value="">Select method...</option>
+            <option value="884670000">By Mail</option>
+            <option value="884670001">Company System</option>
+            <option value="884670002">WhatsApp</option>
+            <option value="884670003">Corporate Agent</option>
+          </select>
+        </div>
+        <div class="form-group" id="corporateAgentGroup" style="display:none;">
+          <label class="required">Corporate Agent</label>
+          <div class="lookup-picker">
+            <span class="picked-value muted" id="corporateAgentText">No agent selected</span>
+            <button class="btn btn-secondary" id="pickCorporateAgent">Pick</button>
+            <button class="btn btn-secondary" id="clearCorporateAgent" style="display:none;">Clear</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Attachment (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-input-label">
+              <span>📎</span>
+              <span>Click to upload file...</span>
+            </div>
+            <input type="file" id="approvalAttachment">
+          </div>
+          <div class="file-name" id="attachmentFileName"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelApproval">Cancel</button>
+        <button class="btn btn-success" id="confirmApproval">Confirm Approval</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== CONFIGURATION ===== */
+    const CFG = {
+      service: "opd_service",
+      visit: "opd_visit",
+      patient: "opd_patient",
+      log: "opd_activitylog",
+      comm: "dm_depcommunication",
+      commCat: "dm_validationcomment",
+      status: { notRequired: 884670000, requested: 884670001, replied: 884670002, approved: 884670003, rejected: 884670004 },
+      approvalMethod: { byMail: 884670000, companySystem: 884670001, whatsapp: 884670002, corporateAgent: 884670003 },
+      fields: {
+        service: { 
+          id: "opd_serviceid", createdon: "createdon", approval: "opd_approvalstatus",
+          bu: "opd_businessunit", cat: "opd_productclassification", svc: "opd_servicename",
+          visitFk: "opd_visit", patientFk: "opd_patient",
+          approvalMethod: "opd_sendemailormanually", corporateAgentName: "opd_corporateagentname"
+        },
+        visit: { id: "opd_visitid", name: "opd_name", date: "opd_visitdate" },
+        patient: { id: "opd_patientid", name: "opd_name" },
+        comm: { id: "dm_depcommunicationid", cat: "dm_validationcomment", comment: "dm_comment", service: "dm_service" },
+        commCat: { id: "dm_validationcommentid", name: "dm_name" }
+      },
+      pageSize: 20,
+      dimTop: 12,
+      visitsDefaultDays: 5,  // Default rolling window for Visits/Services
+      maxDaysAllowed: 5,     // Max days allowed for Visits/Services tabs
+      chunkDays: 7           // Chunk size for aggregate queries to avoid 50k limit
+    };
+
+    /* ===== STATE ===== */
+    let state = {
+      currentTab: "overview",
+      visitsPage: 1, servicesPage: 1,
+      visitsData: [], servicesData: [],
+      selectedServices: new Set(),
+      buList: [], catList: [], commCatList: []
+    };
+
+    let selectedCorporateAgent = null;
+
+    /* ===== HELPERS ===== */
+    function getXrm() {
+      if(typeof Xrm !== 'undefined') return Xrm;
+      if(window.parent && window.parent.Xrm) return window.parent.Xrm;
+      console.warn("Xrm not available");
+      return null;
+    }
+
+    function showToast(msg, duration = 3000) {
+      const t = document.createElement("div");
+      t.className = "toast";
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), duration);
+    }
+
+    function formatDate(d) {
+      if(!d) return "-";
+      return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    }
+
+    function formatDateTime(d) {
+      if(!d) return "-";
+      return new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function getStatusBadge(val) {
+      const map = {
+        [CFG.status.notRequired]: { cls: "badge-pending", lbl: "Not Required" },
+        [CFG.status.requested]: { cls: "badge-requested", lbl: "Requested" },
+        [CFG.status.replied]: { cls: "badge-replied", lbl: "Replied" },
+        [CFG.status.approved]: { cls: "badge-approved", lbl: "Approved" },
+        [CFG.status.rejected]: { cls: "badge-rejected", lbl: "Rejected" }
+      };
+      const s = map[val] || { cls: "badge-pending", lbl: "Unknown" };
+      return `<span class="badge ${s.cls}">${s.lbl}</span>`;
+    }
+
+    /* ===== FILTER FUNCTIONS ===== */
+    // Full filters - used for Overview and SLA tabs (accepts any date range)
+    function getFilters() {
+      const bu = document.getElementById("filterBU").value;
+      const cat = document.getElementById("filterCat").value;
+      const status = document.getElementById("filterStatus").value;
+      const df = document.getElementById("filterDateFrom").value;
+      const dt = document.getElementById("filterDateTo").value;
+      return { bu, cat, status, df, end: dt };
+    }
+
+    // Check if date range is within allowed limit
+    function checkDateRangeValid(f) {
+      if(!f.df || !f.end) return true;
+      const d1 = new Date(f.df);
+      const d2 = new Date(f.end);
+      const diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+      return diffDays <= CFG.maxDaysAllowed;
+    }
+
+    // Apply rolling window of N days back from today
+    function applyRollingWindow(f, days) {
+      const now = new Date();
+      const past = new Date();
+      past.setDate(now.getDate() - days);
+      f.df = past.toISOString().slice(0, 10);
+      f.end = now.toISOString().slice(0, 10);
+    }
+
+    // Limited filters - used for Visits/Services tabs (max 5 days)
+    function getLimitedFilters() {
+      const f = getFilters();
+      if(f.df && f.end) {
+        if(!checkDateRangeValid(f)) {
+          showToast('Date range too large. Max ' + CFG.maxDaysAllowed + ' days for Visits/Services tabs.');
+          return null;
+        }
+      } else {
+        // Apply default rolling window
+        applyRollingWindow(f, CFG.visitsDefaultDays || 5);
+      }
+      return f;
+    }
+
+    function buildFilterXml(f, dateField = "createdon") {
+      let xml = "";
+      if(f.bu) xml += `<condition attribute="${CFG.fields.service.bu}" operator="eq" value="${f.bu}"/>`;
+      if(f.cat) xml += `<condition attribute="${CFG.fields.service.cat}" operator="eq" value="${f.cat}"/>`;
+      if(f.status) xml += `<condition attribute="${CFG.fields.service.approval}" operator="eq" value="${f.status}"/>`;
+      if(f.df) xml += `<condition attribute="${dateField}" operator="ge" value="${f.df}"/>`;
+      if(f.end) xml += `<condition attribute="${dateField}" operator="le" value="${f.end}T23:59:59"/>`;
+      return xml;
+    }
+
+    /* ===== SET DEFAULT DATE RANGE ===== */
+    function setDefaultDateRange() {
+      const now = new Date();
+      const past = new Date();
+      past.setDate(now.getDate() - CFG.visitsDefaultDays);
+      document.getElementById("filterDateFrom").value = past.toISOString().slice(0, 10);
+      document.getElementById("filterDateTo").value = now.toISOString().slice(0, 10);
+    }
+
+    /* ===== DATAVERSE HELPERS ===== */
+    async function fetchXml(Xrm, entity, xml) {
+      const enc = encodeURIComponent(xml);
+      return Xrm.WebApi.retrieveMultipleRecords(entity, `?fetchXml=${enc}`);
+    }
+
+    // Cache for entity set names
+    const entitySetCache = {};
+    async function getEntitySetName(Xrm, logicalName) {
+      if(entitySetCache[logicalName]) return entitySetCache[logicalName];
+      try {
+        const res = await Xrm.WebApi.retrieveMultipleRecords("entitydefinition", 
+          `?$select=EntitySetName&$filter=LogicalName eq '${logicalName}'`);
+        if(res.entities && res.entities.length > 0) {
+          entitySetCache[logicalName] = res.entities[0].EntitySetName;
+          return entitySetCache[logicalName];
+        }
+      } catch(e) {
+        console.warn("Could not get entity set name for", logicalName, e);
+      }
+      // Fallback: add 's' to logical name
+      return logicalName + "s";
+    }
+
+    /* ===== CHUNKED AGGREGATE RETRIEVAL (for 50k limit) ===== */
+    async function retrieveAggChunked(Xrm, entity, fetchFactory, baseFilters, chunkDays) {
+      const results = {};
+      let startDate = new Date(baseFilters.df);
+      const endDate = new Date(baseFilters.end);
+      
+      while(startDate <= endDate) {
+        const chunkEnd = new Date(startDate);
+        chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+        if(chunkEnd > endDate) chunkEnd.setTime(endDate.getTime());
+        
+        const chunkFilters = {
+          ...baseFilters,
+          df: startDate.toISOString().slice(0, 10),
+          end: chunkEnd.toISOString().slice(0, 10)
+        };
+        
+        try {
+          const fetchXmlStr = fetchFactory(chunkFilters);
+          const data = await fetchXml(Xrm, entity, fetchXmlStr);
+          
+          // Merge results
+          if(data.entities) {
+            for(const e of data.entities) {
+              const key = e._groupKey || JSON.stringify(e);
+              if(!results[key]) {
+                results[key] = { ...e };
+              } else {
+                // Sum numeric values
+                for(const k in e) {
+                  if(typeof e[k] === 'number' && k !== '_groupKey') {
+                    results[key][k] = (results[key][k] || 0) + e[k];
+                  }
+                }
+              }
+            }
+          }
+        } catch(err) {
+          // If chunk still fails, split it further
+          if(chunkDays > 1) {
+            const subResults = await retrieveAggChunked(Xrm, entity, fetchFactory, chunkFilters, Math.ceil(chunkDays / 2));
+            for(const k in subResults) {
+              if(!results[k]) results[k] = subResults[k];
+              else {
+                for(const fld in subResults[k]) {
+                  if(typeof subResults[k][fld] === 'number') {
+                    results[k][fld] = (results[k][fld] || 0) + subResults[k][fld];
+                  }
+                }
+              }
+            }
+          } else {
+            console.error("Chunk retrieval failed even at 1 day:", err);
+          }
+        }
+        
+        startDate.setDate(startDate.getDate() + chunkDays);
+      }
+      
+      return results;
+    }
+
+    /* ===== LOAD LOOKUP DATA ===== */
+    async function loadLookups() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      try {
+        // Load in parallel for faster performance
+        const [buRes, catRes, commCatRes] = await Promise.all([
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.bu}" alias="bu" groupby="true"/></entity></fetch>`),
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.cat}" alias="cat" groupby="true"/></entity></fetch>`),
+          fetchXml(Xrm, CFG.commCat, `<fetch><entity name="${CFG.commCat}"><attribute name="${CFG.fields.commCat.id}"/><attribute name="${CFG.fields.commCat.name}"/></entity></fetch>`)
+        ]);
+
+        const buSel = document.getElementById("filterBU");
+        buRes.entities.forEach(e => {
+          if(e.bu) {
+            state.buList.push(e.bu);
+            const opt = document.createElement("option");
+            opt.value = e.bu;
+            opt.textContent = e.bu;
+            buSel.appendChild(opt);
+          }
+        });
+
+        const catSel = document.getElementById("filterCat");
+        catRes.entities.forEach(e => {
+          if(e.cat) {
+            state.catList.push(e.cat);
+            const opt = document.createElement("option");
+            opt.value = e.cat;
+            opt.textContent = e.cat;
+            catSel.appendChild(opt);
+          }
+        });
+
+        const commCatSel = document.getElementById("commCategory");
+        commCatRes.entities.forEach(e => {
+          state.commCatList.push(e);
+          const opt = document.createElement("option");
+          opt.value = e[CFG.fields.commCat.id];
+          opt.textContent = e[CFG.fields.commCat.name];
+          commCatSel.appendChild(opt);
+        });
+      } catch(e) {
+        console.error("Failed to load lookups:", e);
+      }
+    }
+
+    /* ===== OVERVIEW TAB (uses full date range) ===== */
+    async function loadOverview() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      const f = getFilters(); // Full range allowed for Overview
+      const filterXml = buildFilterXml(f);
+
+      try {
+        // Parallel loading for better performance
+        const [totalRes, statusRes, buRes, catRes] = await Promise.all([
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" alias="cnt" aggregate="count"/><filter>${filterXml}</filter></entity></fetch>`),
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" alias="cnt" aggregate="count"/><attribute name="${CFG.fields.service.approval}" alias="status" groupby="true"/><filter>${filterXml}</filter></entity></fetch>`),
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true" top="${CFG.dimTop}"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" alias="cnt" aggregate="count"/><attribute name="${CFG.fields.service.bu}" alias="bu" groupby="true"/><filter>${filterXml}</filter><order alias="cnt" descending="true"/></entity></fetch>`),
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true" top="${CFG.dimTop}"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" alias="cnt" aggregate="count"/><attribute name="${CFG.fields.service.cat}" alias="cat" groupby="true"/><filter>${filterXml}</filter><order alias="cnt" descending="true"/></entity></fetch>`)
+        ]);
+
+        document.getElementById("statTotal").textContent = totalRes.entities[0]?.cnt || 0;
+
+        let req = 0, app = 0, rej = 0;
+        statusRes.entities.forEach(e => {
+          if(e.status === CFG.status.requested) req = e.cnt;
+          else if(e.status === CFG.status.approved) app = e.cnt;
+          else if(e.status === CFG.status.rejected) rej = e.cnt;
+        });
+        document.getElementById("statRequested").textContent = req;
+        document.getElementById("statApproved").textContent = app;
+        document.getElementById("statRejected").textContent = rej;
+
+        const buDiv = document.getElementById("topBU");
+        buDiv.innerHTML = buRes.entities.map(e => `<div class="dim-item"><span class="name">${e.bu || "N/A"}</span><span class="count">${e.cnt}</span></div>`).join("");
+
+        const catDiv = document.getElementById("topCat");
+        catDiv.innerHTML = catRes.entities.map(e => `<div class="dim-item"><span class="name">${e.cat || "N/A"}</span><span class="count">${e.cnt}</span></div>`).join("");
+      } catch(e) {
+        console.error("Overview load failed:", e);
+        showToast("Failed to load overview data");
+      }
+    }
+
+    /* ===== SLA TAB (uses full date range) ===== */
+    async function loadSLA() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      const f = getFilters(); // Full range allowed for SLA
+      const filterXml = buildFilterXml(f);
+
+      try {
+        // Parallel loading
+        const [svcRes, buRes] = await Promise.all([
+          fetchXml(Xrm, CFG.service, `<fetch><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}"/><attribute name="${CFG.fields.service.createdon}"/><attribute name="${CFG.fields.service.approval}"/><attribute name="${CFG.fields.service.bu}"/><filter>${filterXml}<condition attribute="${CFG.fields.service.approval}" operator="in"><value>${CFG.status.approved}</value><value>${CFG.status.rejected}</value></condition></filter></entity></fetch>`),
+          fetchXml(Xrm, CFG.service, `<fetch aggregate="true" top="${CFG.dimTop}"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" alias="cnt" aggregate="count"/><attribute name="${CFG.fields.service.bu}" alias="bu" groupby="true"/><filter>${filterXml}</filter><order alias="cnt" descending="true"/></entity></fetch>`)
+        ]);
+
+        let onTime = 0, warning = 0, breach = 0, totalHours = 0;
+        const now = new Date();
+        svcRes.entities.forEach(e => {
+          const created = new Date(e[CFG.fields.service.createdon]);
+          const hours = (now - created) / (1000 * 60 * 60);
+          totalHours += hours;
+          if(hours <= 24) onTime++;
+          else if(hours <= 48) warning++;
+          else breach++;
+        });
+
+        document.getElementById("slaOnTime").textContent = onTime;
+        document.getElementById("slaWarning").textContent = warning;
+        document.getElementById("slaBreach").textContent = breach;
+        const avgHrs = svcRes.entities.length ? Math.round(totalHours / svcRes.entities.length) : 0;
+        document.getElementById("slaAvg").textContent = avgHrs + "h";
+
+        const slaDiv = document.getElementById("slaBU");
+        slaDiv.innerHTML = buRes.entities.map(e => `<div class="dim-item"><span class="name">${e.bu || "N/A"}</span><span class="count">${e.cnt}</span></div>`).join("");
+      } catch(e) {
+        console.error("SLA load failed:", e);
+        showToast("Failed to load SLA data");
+      }
+    }
+
+    /* ===== VISITS TAB (limited to 5 days) ===== */
+    async function loadVisits() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      const f = getLimitedFilters(); // Limited to 5 days max
+      if(f === null) return; // Date range too large
+
+      document.getElementById("visitsLoading").style.display = "flex";
+      document.getElementById("visitsTable").style.display = "none";
+
+      const filterXml = buildFilterXml(f, CFG.fields.visit.date);
+
+      try {
+        const res = await fetchXml(Xrm, CFG.visit, `<fetch top="${CFG.pageSize * 5}"><entity name="${CFG.visit}"><attribute name="${CFG.fields.visit.id}"/><attribute name="${CFG.fields.visit.name}"/><attribute name="${CFG.fields.visit.date}"/><link-entity name="${CFG.patient}" from="${CFG.fields.patient.id}" to="${CFG.fields.service.patientFk}" alias="pat"><attribute name="${CFG.fields.patient.name}"/></link-entity><filter>${filterXml}</filter><order attribute="${CFG.fields.visit.date}" descending="true"/></entity></fetch>`);
+
+        state.visitsData = res.entities;
+        renderVisits();
+      } catch(e) {
+        console.error("Visits load failed:", e);
+        showToast("Failed to load visits. Try a smaller date range.");
+      }
+
+      document.getElementById("visitsLoading").style.display = "none";
+      document.getElementById("visitsTable").style.display = "table";
+    }
+
+    function renderVisits() {
+      const start = (state.visitsPage - 1) * CFG.pageSize;
+      const page = state.visitsData.slice(start, start + CFG.pageSize);
+      
+      const tbody = document.getElementById("visitsBody");
+      tbody.innerHTML = page.map(v => `
+        <tr>
+          <td>${v[CFG.fields.visit.name] || v[CFG.fields.visit.id]}</td>
+          <td>${v["pat." + CFG.fields.patient.name] || "-"}</td>
+          <td>${formatDate(v[CFG.fields.visit.date])}</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      `).join("");
+
+      renderPagination("visitsPagination", state.visitsData.length, state.visitsPage, p => { state.visitsPage = p; renderVisits(); });
+    }
+
+    /* ===== SERVICES TAB (limited to 5 days) ===== */
+    async function loadServices() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      const f = getLimitedFilters(); // Limited to 5 days max
+      if(f === null) return; // Date range too large
+
+      document.getElementById("servicesLoading").style.display = "flex";
+      document.getElementById("servicesTable").style.display = "none";
+
+      const filterXml = buildFilterXml(f);
+
+      try {
+        const res = await fetchXml(Xrm, CFG.service, `<fetch top="${CFG.pageSize * 10}"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}"/><attribute name="${CFG.fields.service.svc}"/><attribute name="${CFG.fields.service.cat}"/><attribute name="${CFG.fields.service.approval}"/><attribute name="${CFG.fields.service.createdon}"/><link-entity name="${CFG.patient}" from="${CFG.fields.patient.id}" to="${CFG.fields.service.patientFk}" alias="pat"><attribute name="${CFG.fields.patient.name}"/></link-entity><filter>${filterXml}</filter><order attribute="${CFG.fields.service.createdon}" descending="true"/></entity></fetch>`);
+
+        state.servicesData = res.entities;
+        state.selectedServices.clear();
+        updateBulkButtons();
+        renderServices();
+      } catch(e) {
+        console.error("Services load failed:", e);
+        showToast("Failed to load services. Try a smaller date range.");
+      }
+
+      document.getElementById("servicesLoading").style.display = "none";
+      document.getElementById("servicesTable").style.display = "table";
+    }
+
+    function renderServices() {
+      const start = (state.servicesPage - 1) * CFG.pageSize;
+      const page = state.servicesData.slice(start, start + CFG.pageSize);
+      
+      const tbody = document.getElementById("servicesBody");
+      tbody.innerHTML = page.map(s => {
+        const id = s[CFG.fields.service.id];
+        const checked = state.selectedServices.has(id) ? "checked" : "";
+        return `
+          <tr>
+            <td class="checkbox-cell"><input type="checkbox" data-id="${id}" ${checked}></td>
+            <td>${s[CFG.fields.service.svc] || "-"}</td>
+            <td>${s["pat." + CFG.fields.patient.name] || "-"}</td>
+            <td>${s[CFG.fields.service.cat] || "-"}</td>
+            <td>${getStatusBadge(s[CFG.fields.service.approval])}</td>
+            <td>${formatDateTime(s[CFG.fields.service.createdon])}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="viewService('${id}')">View</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      // Checkbox listeners
+      tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener("change", e => {
+          const id = e.target.dataset.id;
+          if(e.target.checked) state.selectedServices.add(id);
+          else state.selectedServices.delete(id);
+          updateBulkButtons();
+        });
+      });
+
+      renderPagination("servicesPagination", state.servicesData.length, state.servicesPage, p => { state.servicesPage = p; renderServices(); });
+    }
+
+    function renderPagination(containerId, total, current, onChange) {
+      const pages = Math.ceil(total / CFG.pageSize);
+      if(pages <= 1) {
+        document.getElementById(containerId).innerHTML = "";
+        return;
+      }
+      
+      let html = `<button class="btn btn-secondary" ${current === 1 ? "disabled" : ""} onclick="(${onChange.toString()})(${current - 1})">Prev</button>`;
+      html += `<span style="padding:8px;">Page ${current} of ${pages}</span>`;
+      html += `<button class="btn btn-secondary" ${current === pages ? "disabled" : ""} onclick="(${onChange.toString()})(${current + 1})">Next</button>`;
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    function updateBulkButtons() {
+      const count = state.selectedServices.size;
+      document.getElementById("selectedCount").textContent = count;
+      document.getElementById("bulkApprove").disabled = count === 0;
+      document.getElementById("bulkReject").disabled = count === 0;
+      document.getElementById("addComm").disabled = count === 0;
+    }
+
+    /* ===== BULK ACTIONS ===== */
+    let pendingApprovalData = null;
+
+    async function bulkUpdateServicesStatus(status, approvalData = null) {
+      const Xrm = getXrm();
+      if(!Xrm || state.selectedServices.size === 0) return;
+
+      const ids = Array.from(state.selectedServices);
+      let success = 0, fail = 0;
+
+      for(const id of ids) {
+        try {
+          const payload = {};
+          payload[CFG.fields.service.approval] = status;
+          
+          // Add approval details if approving
+          if(approvalData) {
+            payload[CFG.fields.service.approvalMethod] = parseInt(approvalData.method);
+            
+            if(approvalData.corporateAgent) {
+              const userSet = await getEntitySetName(Xrm, "systemuser");
+              payload[CFG.fields.service.corporateAgentName + "@odata.bind"] = `/${userSet}(${approvalData.corporateAgent.id})`;
+            }
+            
+            // Note: File attachment would need separate handling via Notes/Annotations
+          }
+          
+          await Xrm.WebApi.updateRecord(CFG.service, id, payload);
+          success++;
+        } catch(e) {
+          console.error("Update failed for", id, e);
+          fail++;
+        }
+      }
+
+      showToast(`Updated ${success} services${fail ? `, ${fail} failed` : ""}`);
+      state.selectedServices.clear();
+      updateBulkButtons();
+      loadServices();
+    }
+
+    function showApprovalModal() {
+      document.getElementById("approvalMethod").value = "";
+      document.getElementById("approvalAttachment").value = "";
+      document.getElementById("attachmentFileName").textContent = "";
+      document.getElementById("corporateAgentGroup").style.display = "none";
+      document.getElementById("corporateAgentText").textContent = "No agent selected";
+      document.getElementById("corporateAgentText").classList.add("muted");
+      document.getElementById("clearCorporateAgent").style.display = "none";
+      selectedCorporateAgent = null;
+      document.getElementById("approvalModal").classList.add("active");
+    }
+
+    function hideApprovalModal() {
+      document.getElementById("approvalModal").classList.remove("active");
+    }
+
+    /* ===== COMMUNICATION MODAL ===== */
+    function showCommModal() {
+      document.getElementById("commCategory").value = "";
+      document.getElementById("commComment").value = "";
+      document.getElementById("commModal").classList.add("active");
+    }
+
+    function hideCommModal() {
+      document.getElementById("commModal").classList.remove("active");
+    }
+
+    async function saveCommunication() {
+      const Xrm = getXrm();
+      if(!Xrm) return;
+
+      const cat = document.getElementById("commCategory").value;
+      const comment = document.getElementById("commComment").value;
+
+      if(!cat) {
+        showToast("Please select a category");
+        return;
+      }
+
+      const ids = Array.from(state.selectedServices);
+      let success = 0, fail = 0;
+
+      const serviceSet = await getEntitySetName(Xrm, CFG.service);
+      const catSet = await getEntitySetName(Xrm, CFG.commCat);
+
+      for(const id of ids) {
+        try {
+          const payload = {};
+          payload[CFG.fields.comm.service + "@odata.bind"] = `/${serviceSet}(${id})`;
+          payload[CFG.fields.comm.cat + "@odata.bind"] = `/${catSet}(${cat})`;
+          if(comment) payload[CFG.fields.comm.comment] = comment;
+          
+          await Xrm.WebApi.createRecord(CFG.comm, payload);
+          success++;
+        } catch(e) {
+          console.error("Comm create failed for", id, e);
+          fail++;
+        }
+      }
+
+      showToast(`Created ${success} communications${fail ? `, ${fail} failed` : ""}`);
+      hideCommModal();
+    }
+
+    function viewService(id) {
+      const Xrm = getXrm();
+      if(Xrm && Xrm.Navigation) {
+        Xrm.Navigation.openForm({ entityName: CFG.service, entityId: id });
+      }
+    }
+
+    /* ===== TAB HANDLING ===== */
+    function switchTab(tab) {
+      state.currentTab = tab;
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.toggle("active", c.id === tab));
+      
+      // Load tab data
+      if(tab === "overview") loadOverview();
+      else if(tab === "sla") loadSLA();
+      else if(tab === "visits") loadVisits();
+      else if(tab === "services") loadServices();
+    }
+
+    /* ===== INITIALIZATION ===== */
+    async function init() {
+      // Set default date range (5 days back)
+      setDefaultDateRange();
+
+      // Load lookups and initial data in parallel
+      await loadLookups();
+      loadOverview();
+
+      // Tab clicks
+      document.querySelectorAll(".tab").forEach(t => {
+        t.addEventListener("click", () => switchTab(t.dataset.tab));
+      });
+
+      // Filter buttons
+      document.getElementById("applyFilters").addEventListener("click", () => switchTab(state.currentTab));
+      document.getElementById("resetFilters").addEventListener("click", () => {
+        document.getElementById("filterBU").value = "";
+        document.getElementById("filterCat").value = "";
+        document.getElementById("filterStatus").value = "";
+        setDefaultDateRange();
+        switchTab(state.currentTab);
+      });
+
+      // Select all checkbox
+      document.getElementById("selectAll").addEventListener("change", e => {
+        const start = (state.servicesPage - 1) * CFG.pageSize;
+        const page = state.servicesData.slice(start, start + CFG.pageSize);
+        page.forEach(s => {
+          const id = s[CFG.fields.service.id];
+          if(e.target.checked) state.selectedServices.add(id);
+          else state.selectedServices.delete(id);
+        });
+        renderServices();
+        updateBulkButtons();
+      });
+
+      // Bulk action buttons
+      document.getElementById("bulkApprove").addEventListener("click", showApprovalModal);
+      document.getElementById("bulkReject").addEventListener("click", () => bulkUpdateServicesStatus(CFG.status.rejected));
+      document.getElementById("addComm").addEventListener("click", showCommModal);
+
+      // Approval modal
+      document.getElementById("closeApprovalModal").addEventListener("click", hideApprovalModal);
+      document.getElementById("cancelApproval").addEventListener("click", hideApprovalModal);
+      
+      document.getElementById("approvalMethod").addEventListener("change", e => {
+        const isCorporate = parseInt(e.target.value) === CFG.approvalMethod.corporateAgent;
+        document.getElementById("corporateAgentGroup").style.display = isCorporate ? "block" : "none";
+      });
+
+      document.getElementById("approvalAttachment").addEventListener("change", e => {
+        const fileName = e.target.files[0]?.name || "";
+        document.getElementById("attachmentFileName").textContent = fileName;
+      });
+
+      // Corporate Agent Lookup
+      document.getElementById("pickCorporateAgent").addEventListener("click", async () => {
+        const Xrm = getXrm();
+        if(!Xrm) return;
+        
+        try {
+          const res = await Xrm.Utility.lookupObjects({
+            allowMultiSelect: false,
+            defaultEntityType: "systemuser",
+            entityTypes: ["systemuser"],
+            searchText: "",
+            lookupStyle: "single"
+          });
+          
+          if(res && res.length) {
+            selectedCorporateAgent = {
+              id: res[0].id.replace(/[{}]/g, ""),
+              name: res[0].name,
+              entityType: res[0].entityType
+            };
+            document.getElementById("corporateAgentText").textContent = selectedCorporateAgent.name;
+            document.getElementById("corporateAgentText").classList.remove("muted");
+            document.getElementById("clearCorporateAgent").style.display = "inline-block";
+          }
+        } catch(e) {
+          console.warn("Lookup failed:", e);
+        }
+      });
+
+      document.getElementById("clearCorporateAgent").addEventListener("click", () => {
+        selectedCorporateAgent = null;
+        document.getElementById("corporateAgentText").textContent = "No agent selected";
+        document.getElementById("corporateAgentText").classList.add("muted");
+        document.getElementById("clearCorporateAgent").style.display = "none";
+      });
+
+      document.getElementById("confirmApproval").addEventListener("click", () => {
+        const method = document.getElementById("approvalMethod").value;
+        
+        if(!method) {
+          showToast("Please select an approval method");
+          return;
+        }
+        
+        const isCorporate = parseInt(method) === CFG.approvalMethod.corporateAgent;
+        if(isCorporate && !selectedCorporateAgent) {
+          showToast("Please select a corporate agent");
+          return;
+        }
+        
+        const approvalData = {
+          method: method,
+          corporateAgent: selectedCorporateAgent,
+          attachment: document.getElementById("approvalAttachment").files[0] || null
+        };
+        
+        hideApprovalModal();
+        bulkUpdateServicesStatus(CFG.status.approved, approvalData);
+      });
+
+      // Communication modal
+      document.getElementById("closeCommModal").addEventListener("click", hideCommModal);
+      document.getElementById("cancelComm").addEventListener("click", hideCommModal);
+      document.getElementById("saveComm").addEventListener("click", saveCommunication);
+    }
+
+    // Start
+    if(document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
