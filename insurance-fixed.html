@@ -138,8 +138,8 @@
     <div class="tabs">
       <div class="tab active" data-tab="overview">Overview</div>
       <div class="tab" data-tab="sla">SLA Performance</div>
-      <div class="tab" data-tab="visits">Visits</div>
-      <div class="tab" data-tab="services">Services</div>
+      <div class="tab" data-tab="visits">Visits <small style="font-size:10px;opacity:0.7">(5d max)</small></div>
+      <div class="tab" data-tab="services">Services <small style="font-size:10px;opacity:0.7">(5d max)</small></div>
     </div>
 
     <div id="overview" class="tab-content active">
@@ -568,12 +568,14 @@
       }
     }
 
-    /* ===== OVERVIEW TAB (uses full date range) ===== */
+    /* ===== OVERVIEW TAB (uses full date range - NO LIMIT) ===== */
     async function loadOverview() {
       const Xrm = getXrm();
       if(!Xrm) return;
 
-      const f = getFilters(); // Full range allowed for Overview
+      console.log("Loading Overview - using getFilters() (NO date limit)");
+      const f = getFilters(); // Full range allowed for Overview - NO VALIDATION
+      console.log("Overview filters:", f);
       const filterXml = buildFilterXml(f);
 
       try {
@@ -608,12 +610,14 @@
       }
     }
 
-    /* ===== SLA TAB (uses full date range) ===== */
+    /* ===== SLA TAB (uses full date range - NO LIMIT) ===== */
     async function loadSLA() {
       const Xrm = getXrm();
       if(!Xrm) return;
 
-      const f = getFilters(); // Full range allowed for SLA
+      console.log("Loading SLA - using getFilters() (NO date limit)");
+      const f = getFilters(); // Full range allowed for SLA - NO VALIDATION
+      console.log("SLA filters:", f);
       const filterXml = buildFilterXml(f);
 
       try {
@@ -648,13 +652,18 @@
       }
     }
 
-    /* ===== VISITS TAB (limited to 5 days) ===== */
+    /* ===== VISITS TAB (limited to 5 days to avoid 50k limit) ===== */
     async function loadVisits() {
       const Xrm = getXrm();
       if(!Xrm) return;
 
+      console.log("Loading Visits - using getLimitedFilters() (MAX 5 days)");
       const f = getLimitedFilters(); // Limited to 5 days max
-      if(f === null) return; // Date range too large
+      if(f === null) {
+        console.log("Visits: Date range validation failed");
+        return; // Date range too large
+      }
+      console.log("Visits filters:", f);
 
       document.getElementById("visitsLoading").style.display = "flex";
       document.getElementById("visitsTable").style.display = "none";
@@ -693,13 +702,18 @@
       renderPagination("visitsPagination", state.visitsData.length, state.visitsPage, p => { state.visitsPage = p; renderVisits(); });
     }
 
-    /* ===== SERVICES TAB (limited to 5 days) ===== */
+    /* ===== SERVICES TAB (limited to 5 days to avoid 50k limit) ===== */
     async function loadServices() {
       const Xrm = getXrm();
       if(!Xrm) return;
 
+      console.log("Loading Services - using getLimitedFilters() (MAX 5 days)");
       const f = getLimitedFilters(); // Limited to 5 days max
-      if(f === null) return; // Date range too large
+      if(f === null) {
+        console.log("Services: Date range validation failed");
+        return; // Date range too large
+      }
+      console.log("Services filters:", f);
 
       document.getElementById("servicesLoading").style.display = "flex";
       document.getElementById("servicesTable").style.display = "none";
@@ -795,21 +809,42 @@
           payload[CFG.fields.service.approval] = status;
           
           // Add approval details if approving
-          if(approvalData) {
+          if(approvalData && approvalData.method) {
             payload[CFG.fields.service.approvalMethod] = parseInt(approvalData.method);
             
-            if(approvalData.corporateAgent) {
-              const userSet = await getEntitySetName(Xrm, "systemuser");
-              payload[CFG.fields.service.corporateAgentName + "@odata.bind"] = `/${userSet}(${approvalData.corporateAgent.id})`;
+            // Only set corporate agent if method is Corporate Agent AND agent was selected
+            if(parseInt(approvalData.method) === CFG.approvalMethod.corporateAgent && approvalData.corporateAgent) {
+              // For lookup fields, use @odata.bind with the navigation property
+              // The navigation property name equals the lookup attribute logical name
+              // systemuser entity set is "systemusers"
+              const agentId = approvalData.corporateAgent.id.replace(/[{}]/g, "");
+              payload[CFG.fields.service.corporateAgentName + "@odata.bind"] = "/systemusers(" + agentId + ")";
             }
-            
-            // Note: File attachment would need separate handling via Notes/Annotations
           }
           
+          console.log("Updating service", id, "with payload:", JSON.stringify(payload));
           await Xrm.WebApi.updateRecord(CFG.service, id, payload);
           success++;
         } catch(e) {
-          console.error("Update failed for", id, e);
+          console.error("Update failed for", id, "Error:", e.message || e);
+          
+          // If corporate agent binding failed, try without it
+          if(approvalData && approvalData.corporateAgent && String(e.message || e).includes("Payload")) {
+            console.log("Retrying without corporate agent binding...");
+            try {
+              const simplePayload = {};
+              simplePayload[CFG.fields.service.approval] = status;
+              if(approvalData.method) {
+                simplePayload[CFG.fields.service.approvalMethod] = parseInt(approvalData.method);
+              }
+              await Xrm.WebApi.updateRecord(CFG.service, id, simplePayload);
+              success++;
+              showToast("Note: Corporate agent not saved - check field configuration");
+              continue;
+            } catch(e2) {
+              console.error("Fallback update also failed:", e2.message || e2);
+            }
+          }
           fail++;
         }
       }
@@ -897,11 +932,17 @@
       document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
       document.querySelectorAll(".tab-content").forEach(c => c.classList.toggle("active", c.id === tab));
       
-      // Load tab data
-      if(tab === "overview") loadOverview();
-      else if(tab === "sla") loadSLA();
-      else if(tab === "visits") loadVisits();
-      else if(tab === "services") loadServices();
+      // Load tab data - Overview and SLA accept any date range
+      // Visits and Services are limited to 5 days max
+      if(tab === "overview") {
+        loadOverview(); // No date limit
+      } else if(tab === "sla") {
+        loadSLA(); // No date limit
+      } else if(tab === "visits") {
+        loadVisits(); // Limited to 5 days
+      } else if(tab === "services") {
+        loadServices(); // Limited to 5 days
+      }
     }
 
     /* ===== INITIALIZATION ===== */
