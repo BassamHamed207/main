@@ -1440,7 +1440,7 @@ f.df.setHours(0,0,0,0);
 }
 const allRows = [];
 const MS_HOUR = 3600000;
-const MS_CHUNK = MS_HOUR * 12; // 12-hour chunks
+const MS_CHUNK = MS_HOUR * 4; // 4-hour chunks for high-density data
 
 // Generate time-based chunks (6 hours each)
 function getTimeChunks(startDate, endDate){
@@ -1457,25 +1457,39 @@ return chunks;
 }
 
 async function fetchChunkRecursive(chunkStart, chunkEnd, depth){
-if(depth > 8) return; // Max 8 levels of recursion
+if(depth > 10) return; // Max 10 levels of recursion
 const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
 const msg = (err && (err.message || err.toString())) || "";
-const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125") || msg.includes("50000") || msg.includes("exceeded");
+const errLower = msg.toLowerCase();
+const isAggLimit = msg.includes("AggregateQueryRecordLimit") || 
+                   msg.includes("8004E023") || 
+                   msg.includes("-2147164125") || 
+                   msg.includes("50000") || 
+                   errLower.includes("exceeded") ||
+                   errLower.includes("maximum record limit") ||
+                   errLower.includes("reduce the number");
 if(isAggLimit){
 // Split this chunk in half and retry
 const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
 const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
-if(timeDiff > MS_HOUR / 2){ // More than 30 minutes, keep splitting
+if(timeDiff > 300000){ // More than 5 minutes, keep splitting
 await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
 await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
 }
-// If less than 30 minutes apart and still failing, skip this chunk
+// If less than 5 minutes apart and still failing, skip this chunk
+} else {
+// For other errors, also try splitting (might be related to size)
+const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
+if(timeDiff > MS_HOUR && depth < 5){
+const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
+await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
+await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
 }
-// For non-aggregate errors, silently skip this chunk
+}
 }
 }
 
