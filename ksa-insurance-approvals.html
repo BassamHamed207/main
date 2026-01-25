@@ -900,7 +900,7 @@ comment: "dm_comment"
 pageSize: 20,
 dimTop: 12,
 visitsDefaultDays: 5,
-chunkDays: 7
+chunkDays: 3
 };
 
 function normalizeStatus(val){
@@ -1438,27 +1438,43 @@ f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 9
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
 }
-const chunks = getDateChunks(f.df, f.end, chunkDays || CFG.chunkDays || 7);
+const effectiveChunkDays = chunkDays || CFG.chunkDays || 3;
+const chunks = getDateChunks(f.df, f.end, effectiveChunkDays);
 const allRows = [];
-for(const chunk of chunks){
-const chunkFilters = {...f, df: chunk.start, end: chunk.end};
+
+async function fetchChunkRecursive(chunkStart, chunkEnd, currentChunkDays, depth){
+if(depth > 6) return; // Max 6 levels of recursion (down to ~hours)
+const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
 const msg = (err && (err.message || err.toString())) || "";
-const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125");
-if(isAggLimit && (chunkDays || CFG.chunkDays) > 1){
-const subChunks = getDateChunks(chunk.start, chunk.end, Math.ceil((chunkDays || CFG.chunkDays) / 2));
+const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125") || msg.includes("50000");
+if(isAggLimit){
+// Split into smaller chunks (halve the chunk size, minimum 1 day)
+const newChunkDays = Math.max(1, Math.ceil(currentChunkDays / 2));
+if(newChunkDays < currentChunkDays || currentChunkDays === 1){
+// If already at 1 day, split by time within the day
+const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
+if(chunkEnd.getTime() - chunkStart.getTime() > 3600000){ // More than 1 hour apart
+await fetchChunkRecursive(chunkStart, midTime, 0.5, depth + 1);
+await fetchChunkRecursive(new Date(midTime.getTime() + 1), chunkEnd, 0.5, depth + 1);
+}
+// If less than 1 hour, give up on this chunk
+} else {
+const subChunks = getDateChunks(chunkStart, chunkEnd, newChunkDays);
 for(const subChunk of subChunks){
-const subFilters = {...f, df: subChunk.start, end: subChunk.end};
-try{
-const subRows = await retrieveAllFetch(Xrm, entity, fetchFactory(subFilters));
-allRows.push(...subRows);
-}catch(e2){}
+await fetchChunkRecursive(subChunk.start, subChunk.end, newChunkDays, depth + 1);
 }
 }
 }
+// For non-aggregate errors, silently skip this chunk
+}
+}
+
+for(const chunk of chunks){
+await fetchChunkRecursive(chunk.start, chunk.end, effectiveChunkDays, 0);
 }
 return allRows;
 }
