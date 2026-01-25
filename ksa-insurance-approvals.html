@@ -1710,7 +1710,7 @@ overviewLoaded = true;
 
 async function loadServiceStatusAgg(Xrm){
 const f = getLimitedFilters();
-const rows = await retrieveAllFetch(Xrm, CFG.service, fxServicesStatusAgg(f));
+const rows = await retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxServicesStatusAgg(chunkF), f, CFG.chunkDays);
 const map = new Map();
 rows.forEach(r=>{
 const raw = r["st"];
@@ -1730,8 +1730,8 @@ try{ await loadServicesPage(Xrm2); } finally { setBusy(false,"Ready"); }
 }
 async function loadServicesPage(Xrm){
 const f = getLimitedFilters();
-const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxServicesCount(f, svcBubble));
-svcTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
+const cntRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxServicesCount(chunkF, svcBubble), f, CFG.chunkDays);
+svcTotal = cntRows.reduce((sum, r) => sum + Number(r["cnt"]||0), 0);
 const fx = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir, svcBubble);
 const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
 svcRows = rows.map(s=>{
@@ -1754,8 +1754,8 @@ renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
 const f = getLimitedFilters();
-const base = await retrieveAllFetch(Xrm, CFG.service, fxVisitsAggAll(f));
-const stRows = await retrieveAllFetch(Xrm, CFG.service, fxVisitsStatusCounts(f));
+const base = await retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxVisitsAggAll(chunkF), f, CFG.chunkDays);
+const stRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxVisitsStatusCounts(chunkF), f, CFG.chunkDays);
 const stMap = new Map();
 for(const r of stRows){
 const vid = r["visitid"];
