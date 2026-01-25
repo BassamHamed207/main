@@ -1438,43 +1438,50 @@ f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 9
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
 }
-const effectiveChunkDays = chunkDays || CFG.chunkDays || 1;
-const chunks = getDateChunks(f.df, f.end, effectiveChunkDays);
 const allRows = [];
+const MS_HOUR = 3600000;
+const MS_CHUNK = MS_HOUR * 6; // 6-hour chunks
 
-async function fetchChunkRecursive(chunkStart, chunkEnd, currentChunkDays, depth){
-if(depth > 6) return; // Max 6 levels of recursion (down to ~hours)
+// Generate time-based chunks (6 hours each)
+function getTimeChunks(startDate, endDate){
+const chunks = [];
+let cur = new Date(startDate.getTime());
+const finalEnd = new Date(endDate.getTime());
+while(cur < finalEnd){
+const chunkStart = new Date(cur.getTime());
+const chunkEnd = new Date(Math.min(cur.getTime() + MS_CHUNK - 1, finalEnd.getTime()));
+chunks.push({ start: chunkStart, end: chunkEnd });
+cur = new Date(chunkEnd.getTime() + 1);
+}
+return chunks;
+}
+
+async function fetchChunkRecursive(chunkStart, chunkEnd, depth){
+if(depth > 8) return; // Max 8 levels of recursion
 const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
 const msg = (err && (err.message || err.toString())) || "";
-const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125") || msg.includes("50000");
+const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125") || msg.includes("50000") || msg.includes("exceeded");
 if(isAggLimit){
-// Split into smaller chunks (halve the chunk size, minimum 1 day)
-const newChunkDays = Math.max(1, Math.ceil(currentChunkDays / 2));
-if(newChunkDays < currentChunkDays || currentChunkDays === 1){
-// If already at 1 day, split by time within the day
+// Split this chunk in half and retry
 const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
-if(chunkEnd.getTime() - chunkStart.getTime() > 3600000){ // More than 1 hour apart
-await fetchChunkRecursive(chunkStart, midTime, 0.5, depth + 1);
-await fetchChunkRecursive(new Date(midTime.getTime() + 1), chunkEnd, 0.5, depth + 1);
+const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
+if(timeDiff > MS_HOUR / 2){ // More than 30 minutes, keep splitting
+await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
+await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
 }
-// If less than 1 hour, give up on this chunk
-} else {
-const subChunks = getDateChunks(chunkStart, chunkEnd, newChunkDays);
-for(const subChunk of subChunks){
-await fetchChunkRecursive(subChunk.start, subChunk.end, newChunkDays, depth + 1);
-}
-}
+// If less than 30 minutes apart and still failing, skip this chunk
 }
 // For non-aggregate errors, silently skip this chunk
 }
 }
 
+const chunks = getTimeChunks(f.df, f.end);
 for(const chunk of chunks){
-await fetchChunkRecursive(chunk.start, chunk.end, effectiveChunkDays, 0);
+await fetchChunkRecursive(chunk.start, chunk.end, 0);
 }
 return allRows;
 }
