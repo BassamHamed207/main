@@ -1771,16 +1771,16 @@ else if(ns==="Sent") o.sent += cnt;
 else if(ns==="Approved") o.approved += cnt;
 else if(ns==="Rejected") o.rejected += cnt;
 }
-visAll = base.map(r=>{
+// Deduplicate visits from multiple chunks (take max latest date)
+const visitMap = new Map();
+for(const r of base){
 const vid = r["visitid"];
+if(!vid) continue;
 const latestIso = r["latest"];
 const latestDt = latestIso ? new Date(latestIso) : null;
-const cnt = stMap.get(vid) || { total:Number(r["total"]||0), posted:0, sent:0, approved:0, rejected:0 };
-const status = visitDerivedStatus(cnt);
-const buv = r["bu"] || "—";
-const insAcc = r["vinsacc"] || "—";
-const subAcc = r["vsubacc"] || "—";
-return {
+const latestMs = latestDt ? latestDt.getTime() : 0;
+if(!visitMap.has(vid) || latestMs > visitMap.get(vid).latestMs){
+visitMap.set(vid, {
 visitId: vid,
 visitName: r["vname"] || "",
 visitExt: r["vext"] || "",
@@ -1788,13 +1788,18 @@ doctor: r["vdoc"] || "—",
 specialty: r["vspec"] || "—",
 patient: r["pname"] || "—",
 phone: r["pphone"] || "—",
-bu: buv || "—",
-insuranceAccount: insAcc,
-subaccount: subAcc,
-latestMs: latestDt ? latestDt.getTime() : 0,
-latestText: latestDt ? latestDt.toLocaleString() : "—",
-visitStatus: status
-};
+bu: r["bu"] || "—",
+insuranceAccount: r["vinsacc"] || "—",
+subaccount: r["vsubacc"] || "—",
+latestMs: latestMs,
+latestText: latestDt ? latestDt.toLocaleString() : "—"
+});
+}
+}
+visAll = Array.from(visitMap.values()).map(v=>{
+const cnt = stMap.get(v.visitId) || { total:0, posted:0, sent:0, approved:0, rejected:0 };
+const status = visitDerivedStatus(cnt);
+return { ...v, visitStatus: status };
 });
 visAll.sort((a,b)=> (visSortDir==="desc" ? (b.latestMs-a.latestMs) : (a.latestMs-b.latestMs)));
 const agg = new Map();
