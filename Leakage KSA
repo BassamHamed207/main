@@ -1,0 +1,2845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Leakage Management Hub</title>
+ 
+  <style>
+    :root{
+      --white:#ffffff;
+      --lgold:#FFE5C9;
+      --dgold:#A5744D;
+      --ink:#211D1E;
+      --green:#49604C;
+ 
+      --bg0:#f7f4ee;
+      --panel:rgba(255,255,255,.70);
+      --border:rgba(33,29,30,.10);
+ 
+      --text:var(--ink);
+      --muted:rgba(33,29,30,.62);
+ 
+      --gold:var(--dgold);
+      --gold2:rgba(165,116,77,.86);
+ 
+      --shadow:0 34px 110px rgba(33,29,30,.12);
+      --shadow2:0 20px 60px rgba(33,29,30,.10);
+      --shadow3:0 12px 28px rgba(33,29,30,.08);
+ 
+      --r:22px;
+      --good:#16a34a;
+      --bad:#dc2626;
+      --warn:#f59e0b;
+      --info:#2563eb;
+ 
+      --ease:cubic-bezier(.16,1,.3,1);
+      --ease2:cubic-bezier(.2,.9,.2,1);
+      --dur:240ms;
+    }
+ 
+    *{box-sizing:border-box}
+    html,body{height:100%}
+ 
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--text);
+      overflow-x:hidden;
+      background:
+        radial-gradient(1200px 760px at 8% 0%, rgba(255,229,201,.68), transparent 56%),
+        radial-gradient(900px 650px at 92% 10%, rgba(165,116,77,.30), transparent 55%),
+        radial-gradient(900px 620px at 65% 96%, rgba(165,116,77,.18), transparent 60%),
+        linear-gradient(180deg, #fcfaf6 0%, #f6f2ea 35%, #f2f4f8 72%, #f7f4ee 100%);
+      padding:14px;
+    }
+ 
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      opacity:.075;
+      mix-blend-mode:multiply;
+      z-index:0;
+    }
+ 
+    body::after{
+      content:"";
+      position:fixed;
+      inset:-20%;
+      pointer-events:none;
+      background:
+        radial-gradient(1200px 480px at 20% 10%, rgba(255,229,201,.26), transparent 60%),
+        radial-gradient(1000px 420px at 80% 20%, rgba(165,116,77,.18), transparent 60%),
+        radial-gradient(1100px 520px at 60% 90%, rgba(255,229,201,.16), transparent 65%);
+      filter: blur(8px);
+      opacity:.75;
+      animation:bgDrift 18s var(--ease) infinite alternate;
+      z-index:0;
+    }
+ 
+    @keyframes bgDrift{
+      0%{transform:translate3d(-1.2%, -0.6%, 0) scale(1)}
+      100%{transform:translate3d(1.2%, 0.8%, 0) scale(1.02)}
+    }
+ 
+    .wrap{
+      max-width:1240px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      position:relative;
+      z-index:1;
+      animation:fadeUp 520ms var(--ease) both;
+    }
+ 
+    @keyframes fadeUp{
+      from{opacity:0; transform:translateY(10px)}
+      to{opacity:1; transform:translateY(0)}
+    }
+ 
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+ 
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.54));
+      backdrop-filter: blur(16px) saturate(1.25);
+      border-radius: var(--r);
+      box-shadow: var(--shadow2);
+      padding:12px 14px;
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+    }
+ 
+    .top::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(720px 140px at 18% 0%, rgba(255,229,201,.72), transparent 62%),
+        radial-gradient(620px 160px at 82% 12%, rgba(165,116,77,.34), transparent 62%),
+        linear-gradient(90deg, transparent 0%, rgba(255,229,201,.18) 40%, transparent 80%);
+      opacity:.95;
+      pointer-events:none;
+      animation:shineSlow 7.5s var(--ease2) infinite;
+    }
+ 
+    @keyframes shineSlow{
+      0%{transform:translateX(-14%)}
+      50%{transform:translateX(14%)}
+      100%{transform:translateX(-14%)}
+    }
+ 
+    .brand{display:flex;flex-direction:column;gap:4px;min-width:220px;position:relative;z-index:1}
+    .brand h1{margin:0;font-size:15px;letter-spacing:.2px}
+    .brand .sub{font-size:12px;color:var(--muted)}
+ 
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+ 
+    .tab{
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.58);
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      cursor:pointer;
+ 
+      display:flex;
+      align-items:center;
+      gap:8px;
+ 
+      user-select:none;
+      white-space:nowrap;
+ 
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+ 
+      transition:
+        transform var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        background var(--dur) var(--ease),
+        filter var(--dur) var(--ease);
+    }
+ 
+    .tab::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: linear-gradient(120deg,
+        transparent 0%,
+        rgba(255,229,201,.55) 26%,
+        rgba(255,255,255,.40) 42%,
+        rgba(165,116,77,.20) 55%,
+        transparent 74%);
+      transform: translateX(-125%);
+      transition: transform 780ms var(--ease);
+      opacity:.95;
+    }
+ 
+    .tab:hover::before{ transform: translateX(125%); }
+ 
+    .tab:hover{
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 18px 42px rgba(33,29,30,.10);
+      border-color: rgba(165,116,77,.26);
+      filter: saturate(1.05);
+    }
+ 
+    .tab:active{ transform: translateY(0) scale(.995); }
+ 
+    .tab[aria-selected="true"]{
+      border-color: rgba(165,116,77,.48);
+      box-shadow: 0 22px 55px rgba(165,116,77,.18);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.58));
+    }
+ 
+    .dot{
+      width:8px;height:8px;border-radius:999px;
+      background: radial-gradient(circle at 30% 30%,
+        rgba(255,229,201,1) 0%,
+        rgba(165,116,77,.95) 55%,
+        rgba(165,116,77,.85) 100%);
+      box-shadow: 0 6px 14px rgba(165,116,77,.22);
+    }
+ 
+    .panel{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.66), rgba(255,255,255,.44));
+      backdrop-filter: blur(16px) saturate(1.25);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      transform:translateZ(0);
+    }
+ 
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:
+        radial-gradient(900px 240px at 22% 0%, rgba(255,229,201,.40), transparent 60%),
+        radial-gradient(880px 240px at 82% 10%, rgba(165,116,77,.22), transparent 62%);
+      pointer-events:none;
+      opacity:.92;
+    }
+ 
+    .phd{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,.42);
+      position:relative;
+      z-index:1;
+    }
+ 
+    .filters{display:grid;grid-template-columns: repeat(12, 1fr);gap:10px}
+    .f{grid-column: span 3;display:flex;flex-direction:column;gap:6px;min-width:150px}
+    .f label{font-size:11px;color:var(--muted)}
+ 
+    .f input,.f select, .mini, .ta, .fieldRow .val{
+      width:100%;
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.66);
+      padding:9px 10px;
+      border-radius:14px;
+      font-size:12px;
+      outline:none;
+      transition:
+        box-shadow var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        transform var(--dur) var(--ease),
+        background var(--dur) var(--ease);
+    }
+ 
+    .f input:hover,.f select:hover,.mini:hover,.ta:hover,.fieldRow .val:hover{
+      border-color: rgba(165,116,77,.28);
+      background: rgba(255,255,255,.74);
+    }
+ 
+    .f input:focus,.f select:focus,.mini:focus,.ta:focus,.fieldRow .val:focus{
+      border-color: rgba(165,116,77,.58);
+      box-shadow: 0 0 0 4px rgba(165,116,77,.16);
+      transform: translateY(-1px);
+    }
+ 
+    .actions{
+      grid-column: span 12;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:2px
+    }
+ 
+    .btn{
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.62);
+      padding:9px 12px;
+      border-radius:14px;
+      font-size:12px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+ 
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+ 
+      transition:
+        transform var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        background var(--dur) var(--ease),
+        filter var(--dur) var(--ease);
+    }
+ 
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: linear-gradient(120deg,
+        transparent 0%,
+        rgba(255,229,201,.58) 28%,
+        rgba(255,255,255,.34) 44%,
+        rgba(165,116,77,.22) 56%,
+        transparent 76%);
+      transform: translateX(-130%);
+      transition: transform 820ms var(--ease);
+      opacity:.95;
+    }
+ 
+    .btn:hover::before{ transform: translateX(130%); }
+ 
+    .btn:hover{
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 18px 44px rgba(33,29,30,.10);
+      border-color: rgba(165,116,77,.28);
+      filter: saturate(1.06);
+    }
+ 
+    .btn:active{ transform: translateY(0) scale(.995); }
+ 
+    .btn.primary{
+      border-color: rgba(165,116,77,.52);
+      background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.56));
+      box-shadow: 0 24px 60px rgba(165,116,77,.18);
+    }
+ 
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+ 
+    .statuspill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.62);
+      font-size:12px;
+      color:var(--muted);
+      backdrop-filter: blur(12px);
+    }
+ 
+    .spin{
+      width:12px;height:12px;border-radius:999px;
+      border:2px solid rgba(33,29,30,.14);
+      border-top-color: rgba(165,116,77,.95);
+      animation: rr 900ms linear infinite;
+    }
+ 
+    @keyframes rr{to{transform:rotate(360deg)}}
+ 
+    .content{padding:12px 14px;position:relative;z-index:1}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+ 
+    .card{
+      background: rgba(255,255,255,.64);
+      border:1px solid rgba(33,29,30,.10);
+      border-radius: var(--r);
+      padding:12px;
+      box-shadow: var(--shadow3);
+      min-height: 96px;
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+      transition:
+        transform var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        filter var(--dur) var(--ease);
+      animation: floaty 6.5s var(--ease2) infinite alternate;
+    }
+ 
+    @keyframes floaty{
+      0%{transform:translate3d(0,0,0)}
+      100%{transform:translate3d(0,-2px,0)}
+    }
+ 
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(520px 140px at 18% 0%, rgba(255,229,201,.34), transparent 60%),
+        radial-gradient(520px 160px at 86% 10%, rgba(165,116,77,.18), transparent 62%);
+      opacity:.95;
+      pointer-events:none;
+    }
+ 
+    .card:hover{
+      transform: translateY(-4px) scale(1.008);
+      border-color: rgba(165,116,77,.24);
+      box-shadow: 0 26px 75px rgba(33,29,30,.12);
+      filter: saturate(1.04);
+    }
+ 
+    .tile{grid-column: span 3}
+    .k{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .v{margin-top:8px;font-size:22px;font-weight:800;letter-spacing:.2px}
+    .s{margin-top:6px;font-size:11px;color:var(--muted)}
+    .wide{grid-column: span 12}
+    .half{grid-column: span 6}
+    .third{grid-column: span 4}
+ 
+    .section{
+      grid-column: span 12;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:2px
+    }
+ 
+    .section h2{margin:0;font-size:13px}
+    .hint{font-size:11px;color:var(--muted)}
+ 
+    .tablewrap{
+      overflow:auto;
+      border-radius: var(--r);
+      border:1px solid rgba(33,29,30,.10);
+      background: rgba(255,255,255,.64);
+      backdrop-filter: blur(14px) saturate(1.2);
+    }
+ 
+    table{width:100%;border-collapse:collapse;min-width:720px}
+    th,td{padding:10px 10px;font-size:12px;border-bottom:1px solid rgba(33,29,30,.08);text-align:left;white-space:nowrap}
+    th{
+      font-size:11px;
+      color:rgba(33,29,30,.62);
+      font-weight:700;
+      background: rgba(255,255,255,.58);
+      cursor:pointer;
+      position:sticky;
+      top:0;
+      z-index:2;
+      backdrop-filter: blur(12px);
+    }
+ 
+    tr:hover td{background: rgba(165,116,77,.07)}
+ 
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background: rgba(33,29,30,.92);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:14px;
+      font-size:12px;
+      box-shadow:0 18px 55px rgba(0,0,0,.25);
+      max-width:min(720px, calc(100vw - 24px));
+      display:none;
+      z-index:9999;
+      border:1px solid rgba(255,255,255,.18);
+      animation: toastIn 280ms var(--ease) both;
+    }
+ 
+    @keyframes toastIn{
+      from{opacity:0; transform:translateX(-50%) translateY(8px) scale(.98)}
+      to{opacity:1; transform:translateX(-50%) translateY(0) scale(1)}
+    }
+ 
+    .toast.show{display:block}
+    .muted{color:var(--muted)}
+    .hidden{display:none !important}
+    .rowActions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+    .chk{width:16px;height:16px}
+ 
+    .bulkbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      padding:10px 12px;
+      border:1px solid rgba(33,29,30,.10);
+      border-radius:var(--r);
+      background: rgba(255,255,255,.62);
+      backdrop-filter: blur(14px) saturate(1.2);
+      margin-bottom:10px;
+      box-shadow: 0 12px 28px rgba(33,29,30,.06);
+    }
+ 
+    .bulkleft{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .bulkright{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .mini{min-width:200px}
+ 
+    .pbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+ 
+    .pinfo{font-size:11px;color:var(--muted)}
+ 
+    .bubbles{display:flex;gap:8px;flex-wrap:wrap}
+ 
+    .bubble{
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.62);
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+ 
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+ 
+      transition:
+        transform var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease),
+        border-color var(--dur) var(--ease),
+        background var(--dur) var(--ease);
+    }
+ 
+    .bubble::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: linear-gradient(120deg,
+        transparent 0%,
+        rgba(255,229,201,.50) 28%,
+        rgba(255,255,255,.32) 44%,
+        transparent 74%);
+      transform: translateX(-130%);
+      transition: transform 820ms var(--ease);
+      opacity:.9;
+    }
+ 
+    .bubble:hover::before{ transform: translateX(130%); }
+ 
+    .bubble:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 18px 44px rgba(33,29,30,.10);
+      border-color: rgba(165,116,77,.26);
+      background: rgba(255,255,255,.72);
+    }
+ 
+    .bubble[aria-selected="true"]{
+      border-color: rgba(165,116,77,.50);
+      box-shadow: 0 22px 58px rgba(165,116,77,.18);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.60));
+      color:var(--text);
+    }
+ 
+    .bubble .n{font-size:11px;color:var(--muted)}
+ 
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      z-index:9998;
+      backdrop-filter: blur(5px);
+      animation: backFade 240ms var(--ease) both;
+    }
+ 
+    @keyframes backFade{ from{opacity:0} to{opacity:1} }
+ 
+    .modalBack.show{display:flex}
+ 
+    .modal{
+      width:min(1100px, 100%);
+      max-height:min(86vh, 860px);
+      overflow:auto;
+ 
+      background: rgba(255,255,255,.80);
+      border:1px solid rgba(255,255,255,.35);
+      border-radius:28px;
+      box-shadow:0 32px 100px rgba(0,0,0,.25);
+      padding:14px;
+ 
+      backdrop-filter: blur(18px) saturate(1.25);
+      position:relative;
+      overflow:hidden;
+      transform:translateZ(0);
+      animation: modalIn 280ms var(--ease) both;
+    }
+ 
+    @keyframes modalIn{
+      from{opacity:0; transform:translateY(10px) scale(.985)}
+      to{opacity:1; transform:translateY(0) scale(1)}
+    }
+ 
+    .modal::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(720px 190px at 18% 0%, rgba(255,229,201,.52), transparent 60%),
+        radial-gradient(650px 180px at 82% 10%, rgba(165,116,77,.26), transparent 62%),
+        radial-gradient(900px 260px at 70% 100%, rgba(255,229,201,.18), transparent 65%);
+      opacity:.95;
+      pointer-events:none;
+    }
+ 
+    .mTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:4px 4px 10px;
+      position:relative;
+      z-index:1
+    }
+ 
+    .mTitle{display:flex;flex-direction:column;gap:4px}
+    .mTitle h3{margin:0;font-size:14px}
+    .mTitle .sub{font-size:12px;color:var(--muted)}
+ 
+    .mActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+ 
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid rgba(33,29,30,.12);
+      background: rgba(255,255,255,.64);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      backdrop-filter: blur(12px);
+    }
+ 
+    .grid2{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;position:relative;z-index:1}
+    .col6{grid-column:span 6}
+    .col12{grid-column:span 12}
+ 
+    .chartBox{
+      height:360px;
+      border:1px solid rgba(33,29,30,.10);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.64);
+      backdrop-filter: blur(14px) saturate(1.2);
+      padding:12px;
+      box-shadow: var(--shadow3);
+    }
+ 
+    @media (max-width: 980px){
+      .f{grid-column: span 6}
+      .tile{grid-column: span 6}
+      .half{grid-column: span 12}
+      .third{grid-column: span 6}
+      table{min-width:780px}
+      .col6{grid-column:span 12}
+    }
+ 
+    @media (max-width: 560px){
+      body{padding:10px}
+      .f{grid-column: span 12}
+      .tile{grid-column: span 12}
+      .third{grid-column: span 12}
+      table{min-width:820px}
+      .mini{min-width:100%}
+    }
+ 
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+      body::after{display:none}
+    }
+  </style>
+</head>
+ 
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>Leakage Management Hub</h1>
+        <div class="sub">Services • Visits • Overview • Trend</div>
+      </div>
+ 
+      <div class="tabs">
+        <button class="tab" id="tabVisits" type="button" aria-selected="true"><span class="dot"></span>Visits</button>
+        <button class="tab" id="tabOverview" type="button" aria-selected="false"><span class="dot"></span>Overview</button>
+        <button class="tab" id="tabServices" type="button" aria-selected="false"><span class="dot"></span>Services</button>
+        <button class="tab" id="tabCharts" type="button" aria-selected="false"><span class="dot"></span>Charts</button>
+      </div>
+ 
+      <div class="statuspill">
+        <span class="spin hidden" id="spin"></span>
+        <span id="statusText">Ready</span>
+      </div>
+    </div>
+ 
+    <div class="panel">
+      <div class="phd">
+        <div class="filters">
+          <div class="f">
+            <label>Date From</label>
+            <input id="dateFrom" type="date" />
+          </div>
+ 
+          <div class="f">
+            <label>Date To</label>
+            <input id="dateTo" type="date" />
+          </div>
+ 
+          <div class="f">
+            <label>Business Unit</label>
+            <select id="bu"><option value="">All</option></select>
+          </div>
+ 
+          <div class="f">
+            <label>Category</label>
+            <select id="cat"><option value="">All</option></select>
+          </div>
+ 
+          <div class="f">
+            <label>Specialty</label>
+            <select id="spec"><option value="">All</option></select>
+          </div>
+ 
+          <div class="f">
+            <label>Physician</label>
+            <select id="phys"><option value="">All</option></select>
+          </div>
+ 
+          <div class="f">
+            <label>Status</label>
+            <select id="st"><option value="">All</option></select>
+          </div>
+ 
+          <div class="f">
+            <label>Visit ID (contains)</label>
+            <input id="visitId" type="text" placeholder="External visit id..." />
+          </div>
+ 
+          <div class="f">
+            <label>Patient Name (contains)</label>
+            <input id="pname" type="text" placeholder="Patient name..." />
+          </div>
+ 
+          <div class="f">
+            <label>Patient Phone (contains)</label>
+            <input id="pphone" type="text" placeholder="Phone..." />
+          </div>
+ 
+          <div class="actions">
+            <button class="btn" id="btnReset" type="button">Reset</button>
+            <button class="btn primary" id="btnApply" type="button">Apply</button>
+            <button class="btn" id="btnExport" type="button">Export (Services)</button>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="content">
+        <!-- VISITS -->
+        <div id="viewVisits">
+          <div class="section">
+            <h2>Visits</h2>
+            <div class="hint"><span id="visCount">—</span></div>
+          </div>
+ 
+          <div class="bubbles" id="visBubbles"></div>
+ 
+          <div class="tablewrap" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Visit</th>
+                  <th>Patient</th>
+                  <th>Phone</th>
+                  <th>Doctor</th>
+                  <th>Specialty</th>
+                  <th>Status</th>
+                  <th id="visSortLatest">Latest</th>
+                  <th style="text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbVisits">
+                <tr><td class="muted" colspan="8">No data</td></tr>
+              </tbody>
+            </table>
+          </div>
+ 
+          <div class="pbar">
+            <div class="pinfo" id="visPageInfo">—</div>
+            <div class="bulkright">
+              <button class="btn" id="visPrev" type="button">Prev</button>
+              <button class="btn" id="visNext" type="button">Next</button>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- OVERVIEW -->
+        <div id="viewOverview" class="hidden">
+          <div class="grid">
+            <div class="card tile">
+              <div class="k">Total Services</div>
+              <div class="v" id="kTotal">—</div>
+              <div class="s muted">All services in range</div>
+            </div>
+ 
+            <div class="card tile">
+              <div class="k">Recovered (Completed)</div>
+              <div class="v" id="kRecovered">—</div>
+              <div class="s" id="kRecoveredPct">—</div>
+            </div>
+ 
+            <div class="card tile">
+              <div class="k">Leaked</div>
+              <div class="v" id="kLeaked">—</div>
+              <div class="s" id="kLeakedPct">—</div>
+            </div>
+ 
+            <div class="card tile">
+              <div class="k">Pending + In Progress</div>
+              <div class="v" id="kPending">—</div>
+              <div class="s muted">Needs follow-up</div>
+            </div>
+ 
+            <div class="card half">
+              <div class="k">By Status</div>
+              <div class="tablewrap" style="margin-top:10px;">
+                <table style="min-width:520px">
+                  <thead>
+                    <tr>
+                      <th>Status</th>
+                      <th>Count</th>
+                      <th>Share</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbStatus">
+                    <tr><td class="muted" colspan="3">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+ 
+            <div class="card half">
+              <div class="k">Top Leakage Reasons</div>
+              <div class="tablewrap" style="margin-top:10px;">
+                <table style="min-width:520px">
+                  <thead>
+                    <tr>
+                      <th>Leakage Reason</th>
+                      <th>Count</th>
+                      <th>—</th>
+                      <th>—</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbCat">
+                    <tr><td class="muted" colspan="4">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+ 
+          </div>
+        </div>
+ 
+        <!-- SERVICES -->
+        <div id="viewServices" class="hidden">
+          <div class="section">
+            <h2>Services</h2>
+            <div class="hint">
+              <span id="svcCount">—</span> • Selected: <span id="selCount">0</span>
+            </div>
+          </div>
+ 
+          <div class="bubbles" id="svcBubbles"></div>
+ 
+          <div class="bulkbar" style="margin-top:10px;">
+            <div class="bulkleft">
+              <button class="btn" id="btnSelectAll" type="button">Select page</button>
+              <button class="btn" id="btnClearSel" type="button">Clear</button>
+            </div>
+ 
+            <div class="bulkright">
+              <select class="mini" id="bulkLeakageReason">
+                <option value="">Select leakage reason...</option>
+              </select>
+ 
+              <input class="mini" id="bulkNotes" type="text" placeholder="Notes..." />
+              <button class="btn primary" id="btnBulkApply" type="button">Cancel Selected</button>
+            </div>
+          </div>
+ 
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px">Sel</th>
+                  <th id="svcSortCreated">Created</th>
+                  <th>Service</th>
+                  <th>Doctor</th>
+                  <th>Patient</th>
+                  <th>Phone</th>
+                  <th>Specialty</th>
+                  <th>Bucket</th>
+                  <th>Leakage Reason</th>
+                  <th style="text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbServices">
+                <tr><td class="muted" colspan="10">No data</td></tr>
+              </tbody>
+            </table>
+          </div>
+ 
+          <div class="pbar">
+            <div class="pinfo" id="svcPageInfo">—</div>
+            <div class="bulkright">
+              <button class="btn" id="svcPrev" type="button">Prev</button>
+              <button class="btn" id="svcNext" type="button">Next</button>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- CHARTS -->
+        <div id="viewCharts" class="hidden">
+          <div class="section">
+            <h2>Trend</h2>
+            <div class="hint">Monthly counts by bucket (uses chart filters only)</div>
+          </div>
+ 
+          <div class="bulkbar" style="margin-top:10px;">
+            <div class="bulkleft" style="min-width:240px;">
+              <select class="mini" id="chartLeakageReason">
+                <option value="">All leakage reasons</option>
+              </select>
+            </div>
+ 
+            <div class="bulkright">
+              <select class="mini" id="chartBU"><option value="">All BUs</option></select>
+              <select class="mini" id="chartSpec"><option value="">All specialties</option></select>
+              <select class="mini" id="chartPhys"><option value="">All physicians</option></select>
+              <input class="mini" id="chartFrom" type="date" />
+              <input class="mini" id="chartTo" type="date" />
+              <button class="btn primary" id="btnChart" type="button">Load Chart</button>
+            </div>
+          </div>
+ 
+          <div class="chartBox" style="margin-top:10px;">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="toast" id="toast"></div>
+ 
+  <!-- Visit Modal -->
+  <div class="modalBack" id="pvModalBack" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Visit services">
+      <div class="mTop">
+        <div class="mTitle">
+          <h3 id="pvTitle">Visit</h3>
+          <div class="sub" id="pvSub">—</div>
+        </div>
+ 
+        <div class="mActions">
+          <span class="pill">Selected: <strong id="pvSelCount">0</strong></span>
+          <button class="btn" id="pvSelAll" type="button">Select page</button>
+          <button class="btn" id="pvSelNone" type="button">Clear</button>
+ 
+          <select class="mini" id="pvBulkLeakageReason">
+            <option value="">Select leakage reason...</option>
+          </select>
+ 
+          <input class="mini" id="pvNotes" type="text" placeholder="Notes..." />
+          <button class="btn primary" id="pvApplyStatus" type="button">Cancel Selected</button>
+          <button class="btn" id="pvClose" type="button">Close</button>
+        </div>
+      </div>
+ 
+      <div class="grid2">
+        <div class="col12">
+          <div class="bulkbar" style="margin:0 0 10px;">
+            <div class="bulkleft">
+              <span class="pill" id="pvSvcHint">—</span>
+            </div>
+            <div class="bulkright">
+              <button class="btn" id="pvSortCreated" type="button">Sort Created</button>
+              <button class="btn" id="pvPrev" type="button">Prev</button>
+              <button class="btn" id="pvNext" type="button">Next</button>
+              <span class="pill" id="pvPageInfo">—</span>
+            </div>
+          </div>
+ 
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px">Sel</th>
+                  <th>Created</th>
+                  <th>Service</th>
+                  <th>Bucket</th>
+                  <th>Leakage Reason</th>
+                  <th style="text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="pvTb">
+                <tr><td class="muted" colspan="6">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+ 
+          <div class="hidden" id="pvTbHidden"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+ 
+  <script>
+    (function(){
+      const CFG = {
+        service: "opd_service",
+        visit: "opd_visit",
+        patient: "opd_patient",
+        fields: {
+          service: {
+            id:"opd_serviceid",
+            createdon:"createdon",
+            status:"opd_servicestatus",
+            leakageReason:"opd_pacomment",
+            notes:"opd_notes",
+            cat:"opd_productclassification",
+            svc:"opd_servicename",
+            visitFk:"opd_visit",
+            patientFk:"opd_patient",
+            bu:"opd_businessunit"
+          },
+          visit: {
+            id:"opd_visitid",
+            name:"opd_name",
+            ext:"opd_externalvisitid",
+            doctor:"opd_doctorname",
+            spec:"opd_specialty"
+          },
+          patient: {
+            id:"opd_patientid",
+            name:"opd_patientname",
+            phone:"opd_phonenumber"
+          }
+        },
+        pageSize: 20,
+        maxRecords: 50000,
+        chunkDays: 7  // Query in 7-day chunks to avoid 50k aggregate limit
+      };
+ 
+      const el = (id)=>document.getElementById(id);
+ 
+      const spin = el("spin");
+      const statusText = el("statusText");
+      const toast = el("toast");
+ 
+      const tabOverview = el("tabOverview");
+      const tabServices = el("tabServices");
+      const tabVisits = el("tabVisits");
+      const tabCharts = el("tabCharts");
+ 
+      const viewOverview = el("viewOverview");
+      const viewServices = el("viewServices");
+      const viewVisits = el("viewVisits");
+      const viewCharts = el("viewCharts");
+ 
+      const dateFrom = el("dateFrom");
+      const dateTo = el("dateTo");
+      const bu = el("bu");
+      const cat = el("cat");
+      const spec = el("spec");
+      const phys = el("phys");
+      const st = el("st");
+      const visitId = el("visitId");
+      const pname = el("pname");
+      const pphone = el("pphone");
+ 
+      const btnReset = el("btnReset");
+      const btnApply = el("btnApply");
+      const btnExport = el("btnExport");
+ 
+      const kTotal = el("kTotal");
+      const kRecovered = el("kRecovered");
+      const kLeaked = el("kLeaked");
+      const kPending = el("kPending");
+      const kRecoveredPct = el("kRecoveredPct");
+      const kLeakedPct = el("kLeakedPct");
+      const tbStatus = el("tbStatus");
+      const tbCat = el("tbCat");
+ 
+      const tbServices = el("tbServices");
+      const svcCount = el("svcCount");
+      const selCount = el("selCount");
+      const btnSelectAll = el("btnSelectAll");
+      const btnClearSel = el("btnClearSel");
+      const bulkLeakageReason = el("bulkLeakageReason");
+      const bulkNotes = el("bulkNotes");
+      const btnBulkApply = el("btnBulkApply");
+      const svcBubbles = el("svcBubbles");
+      const svcPrev = el("svcPrev");
+      const svcNext = el("svcNext");
+      const svcPageInfo = el("svcPageInfo");
+      const svcSortCreated = el("svcSortCreated");
+ 
+      const tbVisits = el("tbVisits");
+      const visCount = el("visCount");
+      const visBubbles = el("visBubbles");
+      const visPrev = el("visPrev");
+      const visNext = el("visNext");
+      const visPageInfo = el("visPageInfo");
+      const visSortLatest = el("visSortLatest");
+ 
+      const pvModalBack = el("pvModalBack");
+      const pvClose = el("pvClose");
+      const pvTitle = el("pvTitle");
+      const pvSub = el("pvSub");
+      const pvTb = el("pvTb");
+      const pvSvcHint = el("pvSvcHint");
+      const pvSelCount = el("pvSelCount");
+      const pvSelAll = el("pvSelAll");
+      const pvSelNone = el("pvSelNone");
+      const pvBulkLeakageReason = el("pvBulkLeakageReason");
+      const pvNotes = el("pvNotes");
+      const pvApplyStatus = el("pvApplyStatus");
+      const pvPrev = el("pvPrev");
+      const pvNext = el("pvNext");
+      const pvPageInfo = el("pvPageInfo");
+      const pvSortCreated = el("pvSortCreated");
+ 
+      const chartCanvas = el("trendChart");
+      const chartLeakageReason = el("chartLeakageReason");
+      const chartBU = el("chartBU");
+      const chartSpec = el("chartSpec");
+      const chartPhys = el("chartPhys");
+      const chartFrom = el("chartFrom");
+      const chartTo = el("chartTo");
+      const btnChart = el("btnChart");
+ 
+      function getXrm(){
+        try{
+          if(window.parent && window.parent.Xrm) return window.parent.Xrm;
+          if(window.Xrm) return window.Xrm;
+        }catch(e){}
+        return null;
+      }
+ 
+      function setBusy(b, t){
+        if(spin) spin.classList.toggle("hidden", !b);
+        if(statusText) statusText.textContent = t || (b ? "Loading" : "Ready");
+ 
+        const ds = [
+          btnApply, btnReset, btnExport,
+          btnBulkApply, btnSelectAll, btnClearSel,
+          svcPrev, svcNext, visPrev, visNext,
+          pvApplyStatus, pvPrev, pvNext,
+          btnChart
+        ];
+        ds.forEach(x=>{ if(x) x.disabled = !!b; });
+      }
+ 
+      function showToast(text){
+        if(!toast) return;
+        toast.textContent = text;
+        toast.classList.add("show");
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(()=>toast.classList.remove("show"), 2800);
+      }
+ 
+      function escapeHtml(s){
+        return (s ?? "").toString().replace(/[&<>"']/g, c=>({
+          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+        }[c]));
+      }
+ 
+   (function(){
+  function fmtInt(n){
+    return (n === null || n === undefined) ? "—" : new Intl.NumberFormat().format(n);
+  }
+ 
+  function parseDateOnly(val){
+    if(!val) return null;
+    const d = new Date(val + "T00:00:00");
+    return isNaN(d.getTime()) ? null : d;
+  }
+ 
+  function toIsoDate(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + dd;
+  }
+ 
+  function xmlEsc(s){
+    return (s ?? "").toString()
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+  }
+ 
+  function normText(v){
+    return (v ?? "").toString().trim();
+  }
+ 
+  function isBlank(v){
+    return v === null || v === undefined || String(v).trim() === "";
+  }
+ 
+  function getFormatted(entity, attr){
+    if(!entity) return "";
+    const k1 = attr + "@OData.Community.Display.V1.FormattedValue";
+    const k2 = attr + "@Microsoft.Dynamics.CRM.formattedvalue";
+    return entity[k1] ?? entity[k2] ?? "";
+  }
+ 
+  function normalizeBucket(statusLabel){
+    const s = normText(statusLabel);
+    const k = s.toLowerCase();
+    if(!k) return "Pending";
+    if(k === "complete" || k === "completed") return "Completed";
+    if(k === "cancelled" || k === "canceled" || k === "discontinued" || k === "no show" || k === "noshow") return "Leaked";
+    if(k === "in progress") return "In Progress";
+    if(k === "ordered") return "Pending";
+    return "Pending";
+  }
+ 
+  function visitStatusFromCounts(cnt){
+    const t = cnt.total || 0;
+    const pending = cnt.pending || 0;
+    const inprog = cnt.inprog || 0;
+    const completed = cnt.completed || 0;
+    const leaked = cnt.leaked || 0;
+ 
+    if(t === 0) return "Pending";
+    if(completed === t) return "Completed";
+    if(leaked === t) return "Leaked";
+    if(pending === t) return "Pending";
+    if(leaked > 0 && (completed > 0 || pending > 0 || inprog > 0)) return "Partially Leaked";
+    if(completed > 0 && (pending > 0 || inprog > 0)) return "Partially Completed";
+    return "Pending";
+  }
+ 
+  function getFilters(){
+    const df = parseDateOnly(dateFrom.value);
+    const dt = parseDateOnly(dateTo.value);
+    const end = dt ? new Date(dt.getTime() + 24*60*60*1000 - 1) : null;
+    return {
+      df,
+      dt,
+      end,
+      bu: (bu.value || "").trim(),
+      cat: (cat.value || "").trim(),
+      spec: (spec.value || "").trim(),
+      phys: (phys.value || "").trim(),
+      st: (st.value || "").trim(),
+      visitId: (visitId.value || "").trim(),
+      pname: (pname.value || "").trim(),
+      pphone: (pphone.value || "").trim()
+    };
+  }
+ 
+  function getChartFilters(){
+    const df = parseDateOnly(chartFrom.value);
+    const dt = parseDateOnly(chartTo.value);
+    const end = dt ? new Date(dt.getTime() + 24*60*60*1000 - 1) : null;
+    return {
+      df,
+      dt,
+      end,
+      bu: (chartBU.value || "").trim(),
+      cat: "",
+      spec: (chartSpec.value || "").trim(),
+      phys: (chartPhys.value || "").trim(),
+      st: "",
+      visitId: "",
+      pname: "",
+      pphone: "",
+      leakageReason: (chartLeakageReason.value || "").trim()
+    };
+  }
+ 
+  // Generate date chunks to avoid 50k limit
+  function generateDateChunks(startDate, endDate, chunkDays){
+    const chunks = [];
+    let current = new Date(startDate);
+    
+    while(current <= endDate){
+      const chunkEnd = new Date(current);
+      chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);
+      
+      if(chunkEnd > endDate){
+        chunkEnd.setTime(endDate.getTime());
+      }
+      
+      chunks.push({
+        start: new Date(current),
+        end: new Date(chunkEnd.getFullYear(), chunkEnd.getMonth(), chunkEnd.getDate(), 23, 59, 59, 999)
+      });
+      
+      current.setDate(current.getDate() + chunkDays);
+    }
+    
+    return chunks;
+  }
+ 
+  function fxServiceBaseFiltersWithDates(f, chunkStart, chunkEnd){
+    const svc = CFG.fields.service;
+    let out = "";
+    out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
+    out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
+ 
+    if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
+    if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
+    if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
+ 
+    return out;
+  }
+ 
+  function fxServiceBaseFilters(f){
+    const svc = CFG.fields.service;
+    let out = "";
+    if(f.df)  out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />`;
+    if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />`;
+ 
+    if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
+    if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
+    if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
+ 
+    return out;
+  }
+ 
+  function fxVisitLinkFilters(f){
+    const v = CFG.fields.visit;
+    let out = "";
+    if(f.spec)   out += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
+    if(f.phys)   out += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
+    if(f.visitId)out += `<condition attribute="${v.ext}" operator="like" value="%${xmlEsc(f.visitId)}%" />`;
+    if(!out) return "";
+    return `<filter type="and">${out}</filter>`;
+  }
+ 
+  function fxPatientLinkFilters(f){
+    const p = CFG.fields.patient;
+    let out = "";
+    if(f.pname)  out += `<condition attribute="${p.name}" operator="like" value="%${xmlEsc(f.pname)}%" />`;
+    if(f.pphone) out += `<condition attribute="${p.phone}" operator="like" value="%${xmlEsc(f.pphone)}%" />`;
+    if(!out) return "";
+    return `<filter type="and">${out}</filter>`;
+  }
+ 
+  async function retrieveAllFetch(Xrm, entity, fetchXml, maxRecords = null){
+    const out = [];
+    let res = await Xrm.WebApi.retrieveMultipleRecords(entity, "?fetchXml=" + encodeURIComponent(fetchXml));
+    if(res && res.entities && res.entities.length) out.push(...res.entities);
+ 
+    while(res && res.nextLink){
+      if(maxRecords && out.length >= maxRecords) break;
+      const qidx = res.nextLink.indexOf("?");
+      const q = qidx >= 0 ? res.nextLink.substring(qidx) : "";
+      res = await Xrm.WebApi.retrieveMultipleRecords(entity, q);
+      if(res && res.entities && res.entities.length) out.push(...res.entities);
+    }
+    
+    if(maxRecords && out.length > maxRecords){
+      return out.slice(0, maxRecords);
+    }
+    return out;
+  }
+ 
+  function fillSelect(selectEl, values){
+    if(!selectEl) return;
+    const cur = selectEl.value;
+    selectEl.innerHTML =
+      `<option value="">All</option>` +
+      values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    if(cur && values.includes(cur)) selectEl.value = cur;
+  }
+ 
+  function fillOptions(selectEl, options, { includeBlank=true, blankText="Select..." } = {}){
+    if(!selectEl) return;
+    const cur = selectEl.value;
+    let html = "";
+    if(includeBlank) html += `<option value="">${escapeHtml(blankText)}</option>`;
+    html += options.map(o => `<option value="${escapeHtml(String(o.value))}">${escapeHtml(o.label)}</option>`).join("");
+    selectEl.innerHTML = html;
+    if(cur && options.some(o => String(o.value) === String(cur))) selectEl.value = cur;
+  }
+ 
+  function distinctOptions(values){
+    return Array.from(
+      new Set(
+        values
+          .filter(v => v !== null && v !== undefined && String(v).trim() !== "")
+          .map(v => String(v))
+      )
+    ).sort((a,b) => a.localeCompare(b));
+  }
+ 
+  function setTab(which){
+    const isP = which === "visits";
+    const isO = which === "overview";
+    const isV = which === "services";
+    const isC = which === "charts";
+ 
+    tabVisits.setAttribute("aria-selected", isP ? "true" : "false");
+    tabOverview.setAttribute("aria-selected", isO ? "true" : "false");
+    tabServices.setAttribute("aria-selected", isV ? "true" : "false");
+    tabCharts.setAttribute("aria-selected", isC ? "true" : "false");
+ 
+    viewVisits.classList.toggle("hidden", !isP);
+    viewOverview.classList.toggle("hidden", !isO);
+    viewServices.classList.toggle("hidden", !isV);
+    viewCharts.classList.toggle("hidden", !isC);
+  }
+ 
+  tabVisits.addEventListener("click", ()=>setTab("visits"));
+  tabOverview.addEventListener("click", ()=>setTab("overview"));
+  tabServices.addEventListener("click", ()=>setTab("services"));
+  tabCharts.addEventListener("click", ()=>setTab("charts"));
+ 
+  const LEAKAGE_REASON_CHOICES = [
+    { value:"884670000", label:"No Comment added" },
+    { value:"884670001", label:"Waiting Approval" },
+    { value:"884670002", label:"Financial reasons" },
+    { value:"884670003", label:"Personal Reasons" },
+    { value:"884670004", label:"Planning to do before surgery" },
+    { value:"884670005", label:"Need patient preparation" },
+    { value:"884670006", label:"Service not available" },
+    { value:"884670007", label:"No Show" },
+    { value:"884670008", label:"Other" },
+    { value:"884670009", label:"Service Done" }
+  ];
+ 
+  let leakageReasonOptions = LEAKAGE_REASON_CHOICES.slice();
+  let leakageReasonValueToLabel = new Map(leakageReasonOptions.map(o=>[String(o.value), o.label]));
+ 
+  let svcPage=1, svcTotal=0, svcRows=[], svcSelected=new Set(), svcSortDir="desc", svcBubble="ALL";
+  let svcStatusAgg=null;
+ 
+  let visAll=[], visPage=1, visSortDir="desc", visBubble="ALL", visStatusAgg=null;
+ 
+  let modalVisit=null;
+  let modalPage=1, modalRows=[], modalSelected=new Set(), modalSortDir="desc";
+ 
+  function renderBubbles(targetEl, items, selectedKey, onPick){
+    targetEl.innerHTML = items.map(it=>{
+      const sel = (it.key === selectedKey) ? "true" : "false";
+      return `
+        <button class="bubble" type="button" data-bkey="${escapeHtml(it.key)}" aria-selected="${sel}">
+          <span>${escapeHtml(it.label)}</span>
+          <span class="n">${fmtInt(it.count)}</span>
+        </button>
+      `;
+    }).join("");
+ 
+    targetEl.querySelectorAll("[data-bkey]").forEach(b=>{
+      b.addEventListener("click", ()=>onPick(b.getAttribute("data-bkey")));
+    });
+  }
+ 
+  function buildSvcBubbleItems(){
+    const m = svcStatusAgg || new Map();
+    const get = (k)=>m.get(k)||0;
+    const total = Array.from(m.values()).reduce((a,b)=>a+b,0);
+    return [
+      { key:"ALL", label:"All", count:total },
+      { key:"Pending", label:"Pending", count:get("Pending") },
+      { key:"In Progress", label:"In Progress", count:get("In Progress") },
+      { key:"Completed", label:"Completed", count:get("Completed") },
+      { key:"Leaked", label:"Leaked", count:get("Leaked") }
+    ];
+  }
+ 
+  function buildVisBubbleItems(){
+    const m = visStatusAgg || new Map();
+    const total = Array.from(m.values()).reduce((a,b)=>a+b,0);
+    return [
+      { key:"ALL", label:"All", count:total },
+      { key:"Pending", label:"Pending", count:m.get("Pending")||0 },
+      { key:"Completed", label:"Completed", count:m.get("Completed")||0 },
+      { key:"Leaked", label:"Leaked", count:m.get("Leaked")||0 },
+      { key:"Partially Completed", label:"Partially Completed", count:m.get("Partially Completed")||0 },
+      { key:"Partially Leaked", label:"Partially Leaked", count:m.get("Partially Leaked")||0 }
+    ];
+  }
+ 
+  function updateSelCount(){
+    selCount.textContent = String(svcSelected.size);
+  }
+  function updateModalSelCount(){
+    pvSelCount.textContent = String(modalSelected.size);
+  }
+ 
+  function renderServicesTable(){
+    svcCount.textContent = fmtInt(svcTotal) + " services";
+    updateSelCount();
+ 
+    tbServices.innerHTML = (svcRows.map(r=>{
+      const checked = svcSelected.has(r.id) ? "checked" : "";
+      return `
+        <tr>
+          <td><input class="chk" type="checkbox" data-sel-service="${escapeHtml(r.id)}" ${checked}></td>
+          <td>${escapeHtml(r.createdText)}</td>
+          <td>${escapeHtml(r.serviceName)}</td>
+          <td>${escapeHtml(r.doctor)}</td>
+          <td>${escapeHtml(r.patient)}</td>
+          <td>${escapeHtml(r.phone)}</td>
+          <td>${escapeHtml(r.specialty)}</td>
+          <td>${escapeHtml(r.bucket)}</td>
+          <td>${escapeHtml(r.leakageReasonLabel || "—")}</td>
+          <td class="rowActions">
+            <button class="btn" data-open-service="${escapeHtml(r.id)}" type="button">Open</button>
+          </td>
+        </tr>
+      `;
+    }).join("")) || `<tr><td class="muted" colspan="10">No data</td></tr>`;
+ 
+    const from = (svcTotal===0) ? 0 : (svcPage-1)*CFG.pageSize + 1;
+    const to = Math.min(svcPage*CFG.pageSize, svcTotal);
+ 
+    svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(svcTotal);
+    svcPrev.disabled = svcPage<=1;
+    svcNext.disabled = to>=svcTotal;
+  }
+ 
+  function renderVisitsTable(){
+    const filtered = (visBubble==="ALL") ? visAll : visAll.filter(x=>x.visitStatus===visBubble);
+    const total = filtered.length;
+    const start = (visPage-1)*CFG.pageSize;
+    const pageRows = filtered.slice(start, start+CFG.pageSize);
+ 
+    visCount.textContent = fmtInt(total) + " visits";
+ 
+    tbVisits.innerHTML = (pageRows.map(v=>{
+      const visitLabel = (v.visitName || v.visitExt || v.visitId);
+      return `
+        <tr>
+          <td>${escapeHtml(visitLabel)}</td>
+          <td>${escapeHtml(v.patient)}</td>
+          <td>${escapeHtml(v.phone)}</td>
+          <td>${escapeHtml(v.doctor)}</td>
+          <td>${escapeHtml(v.specialty)}</td>
+          <td>${escapeHtml(v.visitStatus)}</td>
+          <td>${escapeHtml(v.latestText)}</td>
+          <td class="rowActions">
+            <button class="btn" data-open-visit="${escapeHtml(v.visitId)}" type="button">Open</button>
+          </td>
+        </tr>
+      `;
+    }).join("")) || `<tr><td class="muted" colspan="8">No data</td></tr>`;
+ 
+    const from = (total===0) ? 0 : start+1;
+    const to = Math.min(start+CFG.pageSize, total);
+ 
+    visPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(total);
+    visPrev.disabled = visPage<=1;
+    visNext.disabled = to>=total;
+  }
+ 
+  function fxServicesPage(f, page, count, orderDir){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFilters(f)}</filter>`;
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    const order = `<order attribute="${svc.createdon}" descending="${orderDir==="desc" ? "true":"false"}" />`;
+ 
+    const fx = `
+      <fetch page="${page}" count="${count}">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.id}" />
+          <attribute name="${svc.createdon}" />
+          <attribute name="${svc.status}" />
+          <attribute name="${svc.leakageReason}" />
+          <attribute name="${svc.notes}" />
+          <attribute name="${svc.cat}" />
+          <attribute name="${svc.svc}" />
+          ${svc.bu ? `<attribute name="${svc.bu}" />` : ""}
+          ${whereSvc}
+          ${order}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            <attribute name="${v.id}" />
+            <attribute name="${v.name}" />
+            <attribute name="${v.ext}" />
+            <attribute name="${v.doctor}" />
+            <attribute name="${v.spec}" />
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            <attribute name="${p.name}" />
+            <attribute name="${p.phone}" />
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+ 
+    return fx;
+  }
+ 
+  function fxServicesCount(f){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFilters(f)}</filter>`;
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    return `
+      <fetch aggregate="true">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.id}" aggregate="count" alias="cnt" />
+          ${whereSvc}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+  }
+ 
+  // Chunked status aggregation to avoid 50k limit
+  function fxStatusAggChunk(f, chunkStart, chunkEnd){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFiltersWithDates(f, chunkStart, chunkEnd)}</filter>`;
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    return `
+      <fetch aggregate="true">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.status}" groupby="true" alias="st" />
+          <attribute name="${svc.id}" aggregate="count" alias="cnt" />
+          ${whereSvc}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+  }
+ 
+  // Chunked leakage reason aggregation
+  function fxLeakageReasonAggChunk(f, chunkStart, chunkEnd){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFiltersWithDates(f, chunkStart, chunkEnd)}</filter>`;
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    return `
+      <fetch aggregate="true">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.leakageReason}" groupby="true" alias="lr" />
+          <attribute name="${svc.id}" aggregate="count" alias="cnt" />
+          ${whereSvc}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+  }
+ 
+  // Chart chunked aggregation
+  function fxChartAggChunk(f, chunkStart, chunkEnd){
+    const svc = CFG.fields.service, v = CFG.fields.visit;
+ 
+    let chartSvcFilters = "";
+    chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
+    chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
+    if(svc.bu && f.bu) chartSvcFilters += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
+    if(f.leakageReason) chartSvcFilters += `<condition attribute="${svc.leakageReason}" operator="eq" value="${xmlEsc(f.leakageReason)}" />`;
+ 
+    const whereSvc = `<filter type="and">${chartSvcFilters}</filter>`;
+ 
+    let chartVFilt = "";
+    if(f.spec) chartVFilt += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
+    if(f.phys) chartVFilt += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
+    const vFilt = chartVFilt ? `<filter type="and">${chartVFilt}</filter>` : "";
+ 
+    return `
+      <fetch aggregate="true">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.createdon}" groupby="true" dategrouping="year"  alias="yy" />
+          <attribute name="${svc.createdon}" groupby="true" dategrouping="month" alias="mm" />
+          <attribute name="${svc.status}"    groupby="true" alias="st" />
+          <attribute name="${svc.id}"        aggregate="count" alias="cnt" />
+          ${whereSvc}
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            ${vFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+  }
+ 
+  function fxDistinctLists(f){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFilters(f)}</filter>`;
+    const vFilt = fxVisitLinkFilters({ ...f, spec:"", phys:"", visitId:"" });
+    const pFilt = fxPatientLinkFilters({ ...f, pname:"", pphone:"" });
+ 
+    return `
+      <fetch aggregate="true">
+        <entity name="${CFG.service}">
+          ${svc.bu ? `<attribute name="${svc.bu}" groupby="true" alias="bu" />` : ""}
+          <attribute name="${svc.cat}" groupby="true" alias="cat" />
+          <attribute name="${svc.status}" groupby="true" alias="st" />
+          <attribute name="${svc.id}" aggregate="count" alias="cnt" />
+ 
+          ${whereSvc}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            <attribute name="${v.spec}" groupby="true" alias="spec" />
+            <attribute name="${v.doctor}" groupby="true" alias="doc" />
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+  }
+ 
+  function buildSvcRow(e){
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const id = e[svc.id];
+    const created = e[svc.createdon] ? new Date(e[svc.createdon]) : null;
+    const createdText = created ? created.toLocaleString() : "—";
+ 
+    const statusText = normText(e[svc.status]) || "—";
+    const bucket = normalizeBucket(statusText);
+ 
+    const serviceName = normText(e[svc.svc]) || "—";
+ 
+    const leakageReasonVal = e[svc.leakageReason];
+    const leakageReasonLabel =
+      leakageReasonVal===null || leakageReasonVal===undefined
+        ? ""
+        : (
+            getFormatted(e, svc.leakageReason) ||
+            leakageReasonValueToLabel.get(String(leakageReasonVal)) ||
+            String(leakageReasonVal)
+          );
+ 
+    const notes = normText(e[svc.notes]);
+ 
+    const doctor = normText(e["v."+v.doctor]) || "—";
+    const specialty = normText(e["v."+v.spec]) || "—";
+    const patient = normText(e["p."+p.name]) || "—";
+    const phone = normText(e["p."+p.phone]) || "—";
+ 
+    const visitId = e[svc.visitFk] ? e[svc.visitFk] : (e["v."+v.id] || "");
+    const visitName = normText(e["v."+v.name]);
+    const visitExt  = normText(e["v."+v.ext]);
+ 
+    return {
+      id,
+      created,
+      createdText,
+      statusText,
+      bucket,
+      serviceName,
+      leakageReasonVal: leakageReasonVal===null || leakageReasonVal===undefined ? "" : String(leakageReasonVal),
+      leakageReasonLabel,
+      notes,
+      doctor,
+      specialty,
+      patient,
+      phone,
+      visitId: String(visitId||""),
+      visitName,
+      visitExt
+    };
+  }
+ 
+  function statusAggFromAggEntities(entities, aliasKey){
+    const out = [];
+    for(const e of entities){
+      const val = e[aliasKey];
+      const cnt = Number(e.cnt || e["cnt"] || 0);
+      const label = getFormatted(e, aliasKey) || (val===null || val===undefined ? "" : String(val));
+      out.push({ val, label, cnt });
+    }
+    return out;
+  }
+ 
+  function buildVisitsFromServices(allSvcRows){
+    const byVisit = new Map();
+ 
+    for(const r of allSvcRows){
+      const vid = r.visitId || "";
+      if(!vid) continue;
+ 
+      if(!byVisit.has(vid)){
+        byVisit.set(vid, {
+          visitId: vid,
+          visitName: r.visitName || "",
+          visitExt: r.visitExt || "",
+          patient: r.patient || "—",
+          phone: r.phone || "—",
+          doctor: r.doctor || "—",
+          specialty: r.specialty || "—",
+          latest: r.created ? r.created.getTime() : 0,
+          counts: { total:0, pending:0, inprog:0, completed:0, leaked:0 }
+        });
+      }
+ 
+      const v = byVisit.get(vid);
+      const t = r.created ? r.created.getTime() : 0;
+      if(t > v.latest) v.latest = t;
+ 
+      v.counts.total += 1;
+      if(r.bucket==="Pending") v.counts.pending += 1;
+      else if(r.bucket==="In Progress") v.counts.inprog += 1;
+      else if(r.bucket==="Completed") v.counts.completed += 1;
+      else if(r.bucket==="Leaked") v.counts.leaked += 1;
+      else v.counts.pending += 1;
+    }
+ 
+    const arr = Array.from(byVisit.values()).map(v=>{
+      const latestText = v.latest ? new Date(v.latest).toLocaleString() : "—";
+      const visitStatus = visitStatusFromCounts(v.counts);
+      return { ...v, latestText, visitStatus };
+    });
+ 
+    arr.sort((a,b)=> (visSortDir==="desc" ? (b.latest-a.latest) : (a.latest-b.latest)));
+    return arr;
+  }
+ 
+  function rebuildVisStatusAgg(){
+    const m = new Map();
+    for(const v of visAll){
+      const s = v.visitStatus || "Pending";
+      m.set(s, (m.get(s)||0) + 1);
+    }
+    visStatusAgg = m;
+  }
+ 
+  function renderOverviewFromSvcAgg(bucketMap, statusAggList, leakageAggList){
+    const total = Array.from(bucketMap.values()).reduce((a,b)=>a+b,0);
+ 
+    const completed = bucketMap.get("Completed")||0;
+    const leaked = bucketMap.get("Leaked")||0;
+    const pending = (bucketMap.get("Pending")||0) + (bucketMap.get("In Progress")||0);
+ 
+    kTotal.textContent = fmtInt(total);
+    kRecovered.textContent = fmtInt(completed);
+    kLeaked.textContent = fmtInt(leaked);
+    kPending.textContent = fmtInt(pending);
+ 
+    const pct = (x)=> total ? (Math.round((x/total)*1000)/10).toFixed(1)+"%" : "—";
+    kRecoveredPct.textContent = total ? (pct(completed) + " of total") : "—";
+    kLeakedPct.textContent = total ? (pct(leaked) + " of total") : "—";
+ 
+    const stRows = statusAggList
+      .filter(x=>x.label || x.val!==null)
+      .sort((a,b)=>(b.cnt-a.cnt));
+ 
+    tbStatus.innerHTML = (stRows.map(x=>{
+      const share = total ? (Math.round((x.cnt/total)*1000)/10).toFixed(1)+"%" : "—";
+      return `
+        <tr>
+          <td>${escapeHtml(x.label || String(x.val||"—"))}</td>
+          <td>${fmtInt(x.cnt)}</td>
+          <td>${escapeHtml(share)}</td>
+        </tr>
+      `;
+    }).join("")) || `<tr><td class="muted" colspan="3">—</td></tr>`;
+ 
+    const lrRows = leakageAggList
+      .filter(x=>x.val!==null && x.val!==undefined && String(x.val)!=="")
+      .sort((a,b)=>(b.cnt-a.cnt))
+      .slice(0, 15);
+ 
+    tbCat.innerHTML = (lrRows.map(x=>{
+      const share = total ? (Math.round((x.cnt/total)*1000)/10).toFixed(1)+"%" : "—";
+      const label = (x.label || leakageReasonValueToLabel.get(String(x.val)) || String(x.val));
+      return `
+        <tr>
+          <td>${escapeHtml(label)}</td>
+          <td>${fmtInt(x.cnt)}</td>
+          <td class="muted">${escapeHtml(share)}</td>
+          <td class="muted">—</td>
+        </tr>
+      `;
+    }).join("")) || `<tr><td class="muted" colspan="4">—</td></tr>`;
+  }
+ 
+  async function openRecord(entityName, id){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.Navigation){
+      showToast("Xrm.Navigation not available.");
+      return;
+    }
+ 
+    try{
+      const pageInput = {
+        pageType: "entityrecord",
+        entityName: entityName,
+        entityId: id
+      };
+ 
+      const navOptions = {
+        target: 2,
+        position: 1,
+        width: { value: 92, unit: "%" },
+        height:{ value: 92, unit: "%" }
+      };
+ 
+      await Xrm.Navigation.navigateTo(pageInput, navOptions);
+    }catch(e){
+      showToast("Popup failed: " + (e?.message || e));
+    }
+  }
+ 
+  async function updateManyServices(ids, { leakageReasonVal, notesText }){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+ 
+    const svc = CFG.fields.service;
+    const payloadBase = {};
+    payloadBase[svc.status] = "Cancelled";
+ 
+    if(!isBlank(leakageReasonVal)){
+      const n = Number(leakageReasonVal);
+      if(!Number.isNaN(n)) payloadBase[svc.leakageReason] = n;
+    }
+ 
+    if(!isBlank(notesText)){
+      payloadBase[svc.notes] = notesText;
+    }
+ 
+    let ok=0, fail=0;
+    for(const id of ids){
+      try{
+        await Xrm.WebApi.updateRecord(CFG.service, id, payloadBase);
+        ok++;
+      }catch(e){
+        fail++;
+      }
+    }
+ 
+    showToast(`Updated: ${ok} • Failed: ${fail}`);
+  }
+ 
+  async function loadLists(f){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+ 
+    // Use chunked query for lists too
+    if(!f.df || !f.dt) return;
+    
+    const chunks = generateDateChunks(f.df, f.dt, CFG.chunkDays);
+    const buVals=[], catVals=[], stVals=[], specVals=[], docVals=[];
+    
+    for(const chunk of chunks){
+      try{
+        const chunkFilters = { ...f, df: chunk.start, dt: chunk.end, end: chunk.end };
+        const fx = fxDistinctLists(chunkFilters);
+        const res = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fx));
+        const ents = (res && res.entities) ? res.entities : [];
+ 
+        for(const e of ents){
+          if(CFG.fields.service.bu){
+            const v = e.bu;
+            const lbl = getFormatted(e, "bu") || (v===null||v===undefined ? "" : String(v));
+            if(lbl) buVals.push(lbl);
+          }
+          const c = e.cat;  if(c!==null && c!==undefined && String(c).trim()!=="") catVals.push(String(c));
+          const s = e.st;   if(s!==null && s!==undefined && String(s).trim()!=="") stVals.push(String(s));
+          const sp = e.spec;if(sp!==null && sp!==undefined && String(sp).trim()!=="") specVals.push(String(sp));
+          const d = e.doc;  if(d!==null && d!==undefined && String(d).trim()!=="") docVals.push(String(d));
+        }
+      }catch(e){
+        // Continue with other chunks
+      }
+    }
+ 
+    fillSelect(bu, distinctOptions(buVals));
+    fillSelect(cat, distinctOptions(catVals));
+    fillSelect(st, distinctOptions(stVals));
+    fillSelect(spec, distinctOptions(specVals));
+    fillSelect(phys, distinctOptions(docVals));
+ 
+    fillSelect(chartBU, distinctOptions(buVals));
+    fillSelect(chartSpec, distinctOptions(specVals));
+    fillSelect(chartPhys, distinctOptions(docVals));
+  }
+ 
+  async function loadLeakageReasons(){
+    leakageReasonOptions = LEAKAGE_REASON_CHOICES.slice();
+    leakageReasonValueToLabel = new Map(leakageReasonOptions.map(o=>[String(o.value), o.label]));
+ 
+    fillOptions(bulkLeakageReason, leakageReasonOptions, { includeBlank:true, blankText:"Select leakage reason..." });
+    fillOptions(pvBulkLeakageReason, leakageReasonOptions, { includeBlank:true, blankText:"Select leakage reason..." });
+ 
+    const chartOpts = [{ value:"", label:"All leakage reasons" }, ...leakageReasonOptions.map(o=>({value:o.value, label:o.label}))];
+    fillOptions(chartLeakageReason, chartOpts, { includeBlank:false });
+  }
+ 
+  async function loadServicesPage(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+ 
+    const f = getFilters();
+ 
+    // For count, use chunks
+    if(f.df && f.dt){
+      const chunks = generateDateChunks(f.df, f.dt, CFG.chunkDays);
+      let totalCount = 0;
+      
+      for(const chunk of chunks){
+        try{
+          const chunkFilters = { ...f, df: chunk.start, dt: chunk.end, end: chunk.end };
+          const fxCnt = fxServicesCount(chunkFilters);
+          const resCnt = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxCnt));
+          const cnt = (resCnt.entities && resCnt.entities[0] && (resCnt.entities[0].cnt || resCnt.entities[0]["cnt"])) || 0;
+          totalCount += Number(cnt) || 0;
+        }catch(e){
+          // Continue
+        }
+      }
+      svcTotal = Math.min(totalCount, CFG.maxRecords);
+    }else{
+      svcTotal = 0;
+    }
+ 
+    const fxPage = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir);
+    const res = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxPage));
+    const ents = (res && res.entities) ? res.entities : [];
+ 
+    svcRows = ents.map(buildSvcRow);
+    renderServicesTable();
+  }
+ 
+  // OVERVIEW - Uses chunked queries to avoid 50k limit
+  async function loadOverview(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+ 
+    const f = getFilters();
+    
+    if(!f.df || !f.dt){
+      showToast("Please set date range for overview.");
+      return;
+    }
+ 
+    // Generate chunks
+    const chunks = generateDateChunks(f.df, f.dt, CFG.chunkDays);
+    
+    // Combine status aggregates from all chunks
+    const combinedStatusMap = new Map();
+    const combinedLeakageMap = new Map();
+    
+    for(const chunk of chunks){
+      try{
+        // Status aggregate for this chunk
+        const fxSt = fxStatusAggChunk(f, chunk.start, chunk.end);
+        const stRes = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxSt));
+        const stEnts = (stRes && stRes.entities) ? stRes.entities : [];
+        
+        for(const e of stEnts){
+          const val = e.st;
+          const cnt = Number(e.cnt || 0);
+          const label = getFormatted(e, "st") || (val===null || val===undefined ? "" : String(val));
+          const key = label || String(val||"");
+          combinedStatusMap.set(key, (combinedStatusMap.get(key)||0) + cnt);
+        }
+        
+        // Leakage reason aggregate for this chunk
+        const fxLr = fxLeakageReasonAggChunk(f, chunk.start, chunk.end);
+        const lrRes = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxLr));
+        const lrEnts = (lrRes && lrRes.entities) ? lrRes.entities : [];
+        
+        for(const e of lrEnts){
+          const val = e.lr;
+          const cnt = Number(e.cnt || 0);
+          const label = getFormatted(e, "lr") || "";
+          const key = String(val||"");
+          if(key){
+            if(!combinedLeakageMap.has(key)){
+              combinedLeakageMap.set(key, { val, label, cnt: 0 });
+            }
+            combinedLeakageMap.get(key).cnt += cnt;
+          }
+        }
+      }catch(e){
+        // Continue with other chunks if one fails
+        console.warn("Chunk query failed:", e);
+      }
+    }
+    
+    // Build status list
+    const stList = [];
+    for(const [label, cnt] of combinedStatusMap.entries()){
+      stList.push({ val: label, label, cnt });
+    }
+    
+    // Build leakage list
+    const lrList = Array.from(combinedLeakageMap.values());
+    
+    // Build bucket map
+    const bucketMap = new Map();
+    for(const x of stList){
+      const b = normalizeBucket(x.label || String(x.val||""));
+      bucketMap.set(b, (bucketMap.get(b)||0) + (Number(x.cnt)||0));
+    }
+ 
+    svcStatusAgg = new Map();
+    for(const [k,v] of bucketMap.entries()){
+      svcStatusAgg.set(k, v);
+    }
+ 
+    renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (key)=>{
+      svcBubble = key;
+      applySvcBubbleToCurrentPage();
+    });
+ 
+    renderOverviewFromSvcAgg(bucketMap, stList, lrList);
+  }
+ 
+  function applySvcBubbleToCurrentPage(){
+    if(svcBubble === "ALL"){
+      renderServicesTable();
+      return;
+    }
+    const keep = svcRows.filter(r=>r.bucket === svcBubble);
+    const backup = svcRows;
+    svcRows = keep;
+    renderServicesTable();
+    svcRows = backup;
+  }
+ 
+  async function loadVisits(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+ 
+    const f = getFilters();
+ 
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `<filter type="and">${fxServiceBaseFilters(f)}</filter>`;
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    const order = `<order attribute="${svc.createdon}" descending="true" />`;
+ 
+    const fx = `
+      <fetch>
+        <entity name="${CFG.service}">
+          <attribute name="${svc.id}" />
+          <attribute name="${svc.createdon}" />
+          <attribute name="${svc.status}" />
+          <attribute name="${svc.leakageReason}" />
+          <attribute name="${svc.svc}" />
+          <attribute name="${svc.visitFk}" />
+          <attribute name="${svc.patientFk}" />
+          ${whereSvc}
+          ${order}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            <attribute name="${v.id}" />
+            <attribute name="${v.name}" />
+            <attribute name="${v.ext}" />
+            <attribute name="${v.doctor}" />
+            <attribute name="${v.spec}" />
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            <attribute name="${p.name}" />
+            <attribute name="${p.phone}" />
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+ 
+    const ents = await retrieveAllFetch(Xrm, CFG.service, fx, CFG.maxRecords);
+    const allRows = ents.map(buildSvcRow);
+ 
+    visAll = buildVisitsFromServices(allRows);
+    rebuildVisStatusAgg();
+ 
+    renderBubbles(visBubbles, buildVisBubbleItems(), visBubble, (key)=>{
+      visBubble = key;
+      visPage = 1;
+      renderVisitsTable();
+    });
+ 
+    renderVisitsTable();
+  }
+ 
+  function openVisitModal(visitId){
+    modalVisit = visitId;
+    modalPage = 1;
+    modalSelected = new Set();
+    updateModalSelCount();
+ 
+    pvNotes.value = "";
+    pvBulkLeakageReason.value = "";
+ 
+    const vObj = visAll.find(x=>x.visitId===visitId);
+    pvTitle.textContent = vObj ? (vObj.visitName || vObj.visitExt || vObj.visitId) : "Visit";
+    pvSub.textContent = vObj ? `${vObj.patient} • ${vObj.phone} • ${vObj.doctor} • ${vObj.specialty}` : "—";
+ 
+    pvModalBack.classList.add("show");
+    pvModalBack.setAttribute("aria-hidden","false");
+ 
+    loadVisitServicesPage();
+  }
+ 
+  function closeVisitModal(){
+    pvModalBack.classList.remove("show");
+    pvModalBack.setAttribute("aria-hidden","true");
+    modalVisit = null;
+    modalRows = [];
+    modalSelected = new Set();
+  }
+ 
+  pvClose.addEventListener("click", closeVisitModal);
+  pvModalBack.addEventListener("click", (e)=>{
+    if(e.target===pvModalBack) closeVisitModal();
+  });
+ 
+  async function loadVisitServicesPage(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("Xrm.WebApi not available.");
+      return;
+    }
+    if(!modalVisit) return;
+ 
+    const f = getFilters();
+    const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
+ 
+    const whereSvc = `
+      <filter type="and">
+        ${fxServiceBaseFilters(f)}
+        <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(modalVisit)}" />
+      </filter>
+    `;
+ 
+    const vFilt = fxVisitLinkFilters(f);
+    const pFilt = fxPatientLinkFilters(f);
+ 
+    const order = `<order attribute="${svc.createdon}" descending="${modalSortDir==="desc" ? "true":"false"}" />`;
+ 
+    const fx = `
+      <fetch page="${modalPage}" count="${CFG.pageSize}">
+        <entity name="${CFG.service}">
+          <attribute name="${svc.id}" />
+          <attribute name="${svc.createdon}" />
+          <attribute name="${svc.status}" />
+          <attribute name="${svc.leakageReason}" />
+          <attribute name="${svc.notes}" />
+          <attribute name="${svc.svc}" />
+          <attribute name="${svc.visitFk}" />
+          <attribute name="${svc.patientFk}" />
+          ${whereSvc}
+          ${order}
+ 
+          <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+            <attribute name="${v.name}" />
+            <attribute name="${v.ext}" />
+            ${vFilt}
+          </link-entity>
+ 
+          <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
+            ${pFilt}
+          </link-entity>
+        </entity>
+      </fetch>
+    `.replace(/\s+/g," ").trim();
+ 
+    const res = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fx));
+    const ents = (res && res.entities) ? res.entities : [];
+ 
+    modalRows = ents.map(buildSvcRow);
+ 
+    pvSvcHint.textContent = `Services: ${fmtInt(modalRows.length)} (page ${modalPage})`;
+ 
+    pvTb.innerHTML = (modalRows.map(r=>{
+      const checked = modalSelected.has(r.id) ? "checked" : "";
+      return `
+        <tr>
+          <td><input class="chk" type="checkbox" data-pv-sel="${escapeHtml(r.id)}" ${checked}></td>
+          <td>${escapeHtml(r.createdText)}</td>
+          <td>${escapeHtml(r.serviceName)}</td>
+          <td>${escapeHtml(r.bucket)}</td>
+          <td>${escapeHtml(r.leakageReasonLabel || "—")}</td>
+          <td class="rowActions">
+            <button class="btn" data-open-service="${escapeHtml(r.id)}" type="button">Open</button>
+          </td>
+        </tr>
+      `;
+    }).join("")) || `<tr><td class="muted" colspan="6">—</td></tr>`;
+ 
+    pvPageInfo.textContent = `Page ${modalPage}`;
+    pvPrev.disabled = modalPage<=1;
+    pvNext.disabled = !res || !res.nextLink;
+ 
+    wireTableActions();
+  }
+ 
+  pvPrev.addEventListener("click", ()=>{
+    if(modalPage>1){
+      modalPage--;
+      loadVisitServicesPage();
+    }
+  });
+ 
+  pvNext.addEventListener("click", ()=>{
+    modalPage++;
+    loadVisitServicesPage();
+  });
+ 
+  pvSortCreated.addEventListener("click", ()=>{
+    modalSortDir = (modalSortDir==="desc" ? "asc" : "desc");
+    loadVisitServicesPage();
+  });
+ 
+  pvSelAll.addEventListener("click", ()=>{
+    for(const r of modalRows) modalSelected.add(r.id);
+    updateModalSelCount();
+    loadVisitServicesPage();
+  });
+ 
+  pvSelNone.addEventListener("click", ()=>{
+    modalSelected.clear();
+    updateModalSelCount();
+    loadVisitServicesPage();
+  });
+ 
+  pvApplyStatus.addEventListener("click", async ()=>{
+    if(modalSelected.size===0) return showToast("No services selected.");
+ 
+    const lr = pvBulkLeakageReason.value;
+    if(isBlank(lr)) return showToast("Leakage reason is mandatory. Please select one.");
+ 
+    const notesText = pvNotes.value;
+ 
+    setBusy(true,"Updating…");
+    try{
+      await updateManyServices(Array.from(modalSelected), { leakageReasonVal: lr, notesText });
+      modalSelected.clear();
+      updateModalSelCount();
+      await applyAll();
+      if(modalVisit) openVisitModal(modalVisit);
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  btnSelectAll.addEventListener("click", ()=>{
+    for(const r of svcRows){
+      if(r && r.id) svcSelected.add(r.id);
+    }
+    updateSelCount();
+    renderServicesTable();
+    wireTableActions();
+  });
+ 
+  btnClearSel.addEventListener("click", ()=>{
+    svcSelected.clear();
+    updateSelCount();
+    renderServicesTable();
+    wireTableActions();
+  });
+ 
+  btnBulkApply.addEventListener("click", async ()=>{
+    if(svcSelected.size===0) return showToast("No services selected.");
+ 
+    const lr = bulkLeakageReason.value;
+    if(isBlank(lr)) return showToast("Leakage reason is mandatory. Please select one.");
+ 
+    const notesText = bulkNotes.value;
+ 
+    setBusy(true,"Updating…");
+    try{
+      await updateManyServices(Array.from(svcSelected), { leakageReasonVal: lr, notesText });
+      svcSelected.clear();
+      updateSelCount();
+      await applyAll();
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  function wireTableActions(){
+    document.querySelectorAll("[data-sel-service]").forEach(ch=>{
+      ch.addEventListener("change", ()=>{
+        const id = ch.getAttribute("data-sel-service");
+        if(!id) return;
+        if(ch.checked) svcSelected.add(id);
+        else svcSelected.delete(id);
+        updateSelCount();
+      });
+    });
+ 
+    document.querySelectorAll("[data-pv-sel]").forEach(ch=>{
+      ch.addEventListener("change", ()=>{
+        const id = ch.getAttribute("data-pv-sel");
+        if(!id) return;
+        if(ch.checked) modalSelected.add(id);
+        else modalSelected.delete(id);
+        updateModalSelCount();
+      });
+    });
+ 
+    document.querySelectorAll("[data-open-service]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        openRecord(CFG.service, b.getAttribute("data-open-service"));
+      });
+    });
+ 
+    document.querySelectorAll("[data-open-visit]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        openVisitModal(b.getAttribute("data-open-visit"));
+      });
+    });
+  }
+ 
+  svcPrev.addEventListener("click", async ()=>{
+    if(svcPage>1){
+      svcPage--;
+      setBusy(true,"Loading…");
+      try{
+        await loadServicesPage();
+        applySvcBubbleToCurrentPage();
+        wireTableActions();
+      }finally{
+        setBusy(false,"Ready");
+      }
+    }
+  });
+ 
+  svcNext.addEventListener("click", async ()=>{
+    const maxPage = Math.max(1, Math.ceil((svcTotal||0)/CFG.pageSize));
+    if(svcPage<maxPage){
+      svcPage++;
+      setBusy(true,"Loading…");
+      try{
+        await loadServicesPage();
+        applySvcBubbleToCurrentPage();
+        wireTableActions();
+      }finally{
+        setBusy(false,"Ready");
+      }
+    }
+  });
+ 
+  svcSortCreated.addEventListener("click", async ()=>{
+    svcSortDir = (svcSortDir==="desc" ? "asc" : "desc");
+    svcPage = 1;
+    setBusy(true,"Loading…");
+    try{
+      await loadServicesPage();
+      applySvcBubbleToCurrentPage();
+      wireTableActions();
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  visPrev.addEventListener("click", ()=>{
+    if(visPage>1){
+      visPage--;
+      renderVisitsTable();
+    }
+  });
+ 
+  visNext.addEventListener("click", ()=>{
+    const filtered = (visBubble==="ALL") ? visAll : visAll.filter(x=>x.visitStatus===visBubble);
+    const total = filtered.length;
+    const maxPage = Math.max(1, Math.ceil(total/CFG.pageSize));
+    if(visPage<maxPage){
+      visPage++;
+      renderVisitsTable();
+    }
+  });
+ 
+  visSortLatest.addEventListener("click", ()=>{
+    visSortDir = (visSortDir==="desc" ? "asc" : "desc");
+    visAll.sort((a,b)=> (visSortDir==="desc" ? (b.latest-a.latest) : (a.latest-b.latest)));
+    visPage = 1;
+    renderVisitsTable();
+  });
+ 
+  function downloadCsv(filename, rows){
+    const csv = rows.map(r=>r.map(v=>{
+      const s = (v ?? "").toString();
+      const needs = /[",\n]/.test(s);
+      const esc = s.replace(/"/g,'""');
+      return needs ? `"${esc}"` : esc;
+    }).join(",")).join("\n");
+ 
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+ 
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+ 
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+ 
+  btnExport.addEventListener("click", async ()=>{
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi) return showToast("Xrm.WebApi not available.");
+ 
+    setBusy(true,"Exporting…");
+    try{
+      const f = getFilters();
+      const fx = fxServicesPage(f, 1, 5000, "desc").replace(/page="1"/,'');
+      const ents = await retrieveAllFetch(Xrm, CFG.service, fx, CFG.maxRecords);
+      const rows = ents.map(buildSvcRow);
+ 
+      const header = ["Created","Service","Doctor","Specialty","Patient","Phone","Bucket","Status","Leakage Reason","Notes","Visit"];
+      const body = rows.map(r=>[
+        r.createdText,
+        r.serviceName,
+        r.doctor,
+        r.specialty,
+        r.patient,
+        r.phone,
+        r.bucket,
+        r.statusText,
+        r.leakageReasonLabel || "",
+        r.notes || "",
+        (r.visitName || r.visitExt || r.visitId || "")
+      ]);
+ 
+      downloadCsv("Services_Export.csv", [header, ...body]);
+      showToast("Export ready.");
+    }catch(e){
+      showToast("Export failed.");
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  // CHART - Uses chunked queries, independent from main filters
+  let trendChart=null;
+ 
+  function monthKey(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    return `${y}-${m}`;
+  }
+ 
+  function ensureMonths(from, to){
+    const out=[];
+    const a = new Date(from.getFullYear(), from.getMonth(), 1);
+    const b = new Date(to.getFullYear(), to.getMonth(), 1);
+    while(a<=b){
+      out.push(monthKey(a));
+      a.setMonth(a.getMonth()+1);
+    }
+    return out;
+  }
+ 
+  async function loadChart(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi) return showToast("Xrm.WebApi not available.");
+ 
+    const cf = getChartFilters();
+ 
+    if(!cf.df || !cf.dt){
+      return showToast("Please set chart date range (From and To dates).");
+    }
+ 
+    // Generate chunks for chart
+    const chunks = generateDateChunks(cf.df, cf.dt, CFG.chunkDays);
+    
+    // Combined results: monthKey -> { Pending, In Progress, Completed, Leaked }
+    const m = new Map();
+ 
+    for(const chunk of chunks){
+      try{
+        const fx = fxChartAggChunk(cf, chunk.start, chunk.end);
+        const res = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fx));
+        const ents = (res && res.entities) ? res.entities : [];
+ 
+        for(const e of ents){
+          const yy = Number(e.yy);
+          const mm = Number(e.mm);
+          if(!yy || !mm) continue;
+ 
+          const mk = `${yy}-${String(mm).padStart(2,"0")}`;
+          if(!m.has(mk)) m.set(mk, {"Pending":0,"In Progress":0,"Completed":0,"Leaked":0});
+ 
+          const statusLabel = getFormatted(e, "st") || normText(e.st) || "";
+          const bucket = normalizeBucket(statusLabel);
+ 
+          const cnt = Number(e.cnt || 0) || 0;
+          const obj = m.get(mk);
+          obj[bucket] = (obj[bucket]||0) + cnt;
+        }
+      }catch(e){
+        console.warn("Chart chunk failed:", e);
+      }
+    }
+    
+    if(m.size === 0){
+      showToast("No chart data for selected filters.");
+      if(trendChart){
+        trendChart.destroy();
+        trendChart=null;
+      }
+      return;
+    }
+ 
+    const months = ensureMonths(cf.df, cf.dt);
+ 
+    const totalArr = months.map(mm=>{
+      const o = m.get(mm) || {"Pending":0,"In Progress":0,"Completed":0,"Leaked":0};
+      return (o["Pending"]||0) + (o["In Progress"]||0) + (o["Completed"]||0) + (o["Leaked"]||0);
+    });
+ 
+    const pendingArr = months.map(mm=>{
+      const o = m.get(mm) || {"Pending":0,"In Progress":0,"Completed":0,"Leaked":0};
+      return (o["Pending"]||0) + (o["In Progress"]||0);
+    });
+ 
+    const completedArr = months.map(mm=> (m.get(mm)?.["Completed"] || 0));
+    const leakedArr = months.map(mm=> (m.get(mm)?.["Leaked"] || 0));
+ 
+    const ds = [
+      { label:"Total", data: totalArr, tension:0.25, borderColor:"#2563eb", backgroundColor:"#2563eb", pointBackgroundColor:"#2563eb", pointBorderColor:"#2563eb", borderWidth:2, pointRadius:3 },
+      { label:"Leaked", data: leakedArr, tension:0.25, borderColor:"#dc2626", backgroundColor:"#dc2626", pointBackgroundColor:"#dc2626", pointBorderColor:"#dc2626", borderWidth:2, pointRadius:3 },
+      { label:"Completed", data: completedArr, tension:0.25, borderColor:"#16a34a", backgroundColor:"#16a34a", pointBackgroundColor:"#16a34a", pointBorderColor:"#16a34a", borderWidth:2, pointRadius:3 },
+      { label:"Pending", data: pendingArr, tension:0.25, borderColor:"#6b7280", backgroundColor:"#6b7280", pointBackgroundColor:"#6b7280", pointBorderColor:"#6b7280", borderWidth:2, pointRadius:3 }
+    ];
+ 
+    if(trendChart){
+      trendChart.destroy();
+      trendChart=null;
+    }
+ 
+    trendChart = new Chart(chartCanvas.getContext("2d"), {
+      type:"line",
+      data:{ labels: months, datasets: ds },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"index", intersect:false },
+        plugins:{ legend:{ display:true } },
+        scales:{ y:{ beginAtZero:true } }
+      }
+    });
+ 
+    showToast("Chart loaded.");
+  }
+ 
+  btnChart.addEventListener("click", async ()=>{
+    setBusy(true,"Loading chart…");
+    try{
+      await loadChart();
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  function resetFilters(){
+    const now = new Date();
+    const from = new Date(now.getTime() - 5*24*60*60*1000);
+    
+    dateFrom.value = toIsoDate(from);
+    dateTo.value = toIsoDate(now);
+    visitId.value = "";
+    pname.value = "";
+    pphone.value = "";
+ 
+    bu.value = "";
+    cat.value = "";
+    spec.value = "";
+    phys.value = "";
+    st.value = "";
+ 
+    const chartDefaultFrom = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    chartLeakageReason.value = "";
+    chartBU.value = "";
+    chartSpec.value = "";
+    chartPhys.value = "";
+    chartFrom.value = toIsoDate(chartDefaultFrom);
+    chartTo.value = toIsoDate(now);
+ 
+    svcSelected.clear();
+    svcPage = 1;
+    svcSortDir = "desc";
+    svcBubble = "ALL";
+ 
+    visPage = 1;
+    visSortDir = "desc";
+    visBubble = "ALL";
+  }
+ 
+  btnReset.addEventListener("click", async ()=>{
+    resetFilters();
+    setBusy(true,"Loading…");
+    try{
+      await loadLists(getFilters());
+      await loadLeakageReasons();
+      await applyAll();
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  async function applyAll(){
+    svcPage = Math.max(1, svcPage||1);
+    visPage = Math.max(1, visPage||1);
+ 
+    await loadLeakageReasons();
+ 
+    await loadOverview();
+    await loadServicesPage();
+ 
+    renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (key)=>{
+      svcBubble = key;
+      applySvcBubbleToCurrentPage();
+      wireTableActions();
+    });
+ 
+    applySvcBubbleToCurrentPage();
+ 
+    await loadVisits();
+    wireTableActions();
+  }
+ 
+  btnApply.addEventListener("click", async ()=>{
+    setBusy(true,"Loading…");
+    try{
+      svcPage = 1;
+      visPage = 1;
+      await loadLists(getFilters());
+      await applyAll();
+      showToast("Applied.");
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+ 
+  async function boot(){
+    const Xrm = getXrm();
+    if(!Xrm || !Xrm.WebApi){
+      showToast("This page must run inside Model-driven app (Xrm not found).");
+      return;
+    }
+ 
+    const now = new Date();
+    
+    // Main filters: 5 days back
+    const from = new Date(now.getTime() - 5*24*60*60*1000);
+    dateFrom.value = toIsoDate(from);
+    dateTo.value = toIsoDate(now);
+ 
+    // Chart filters: 6 months back (independent)
+    const chartDefaultFrom = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    chartFrom.value = toIsoDate(chartDefaultFrom);
+    chartTo.value = toIsoDate(now);
+ 
+    setBusy(true,"Loading…");
+    try{
+      await loadLists(getFilters());
+      await loadLeakageReasons();
+      await applyAll();
+    }finally{
+      setBusy(false, "Ready");
+    }
+  }
+ 
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", boot, { once:true });
+  }else{
+    boot();
+  }
+})();
+})();
+</script>
+</body>
+</html>
