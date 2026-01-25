@@ -1440,7 +1440,7 @@ f.df.setHours(0,0,0,0);
 }
 const allRows = [];
 const MS_HOUR = 3600000;
-const MS_CHUNK = MS_HOUR * 6; // 6-hour chunks
+const MS_CHUNK = MS_HOUR * 12; // 12-hour chunks
 
 // Generate time-based chunks (6 hours each)
 function getTimeChunks(startDate, endDate){
