@@ -1640,10 +1640,10 @@ visNext.disabled = to>=total;
 async function loadDimensions(Xrm){
 const f = getLimitedFilters();
 const dims = await Promise.all([
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"spec")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"phys"))
+retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxDimAgg(chunkF,"bu"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxDimAgg(chunkF,"cat"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxDimAgg(chunkF,"spec"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxDimAgg(chunkF,"phys"), f, CFG.chunkDays)
 ]);
 const buVals = distinctOptions(dims[0].map(r=>r["v"]).filter(Boolean));
 const catVals = distinctOptions(dims[1].map(r=>r["v"]).filter(Boolean));
