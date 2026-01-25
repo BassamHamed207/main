@@ -900,7 +900,7 @@ comment: "dm_comment"
 pageSize: 20,
 dimTop: 12,
 visitsDefaultDays: 5,
-chunkDays: 3
+chunkDays: 1
 };
 
 function normalizeStatus(val){
@@ -1438,7 +1438,7 @@ f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 9
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
 }
-const effectiveChunkDays = chunkDays || CFG.chunkDays || 3;
+const effectiveChunkDays = chunkDays || CFG.chunkDays || 1;
 const chunks = getDateChunks(f.df, f.end, effectiveChunkDays);
 const allRows = [];
 
