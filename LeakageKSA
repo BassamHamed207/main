@@ -1000,7 +1000,7 @@
             agent: "opd_agent"
           },
           comm: {
-            serviceLookup: "opd_service",
+            serviceLookup: "opd_ksaservices",
             departmentLookup: "dm_department_1",
             regionLookup: "dm_region",
             categoryLookup: "dm_validationcomment",
@@ -2262,13 +2262,16 @@
       payload["opd_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
       payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
       await Xrm.WebApi.createRecord(CFG.comm, payload);
-      showToast("Communication created successfully!");
+       showToast("Communication created.");
       closeComm();
     }catch(e){
-      showToast("Failed to create communication: " + (e.message || e));
+         const msg = e?.message || e?.error?.message || e?.error?.innererror?.message || JSON.stringify(e) || "";
     }finally{
+      showToast("Communication failed: " + (msg || "Unknown error"));
       setBusy(false,"Ready");
+      console.error("Communication creation error:", e);
     }
+    }finally{ setBusy(false,"Ready"); }
   });
   btnSelectAll.addEventListener("click", ()=>{
     // Select from current page of filtered data
