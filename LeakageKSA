@@ -1000,7 +1000,7 @@
             agent: "opd_agent"
           },
           comm: {
-            serviceLookup: "opd_ksaservices",
+            serviceLookup: "opdksa_ksaservices",
             departmentLookup: "dm_department_1",
             regionLookup: "dm_region",
             categoryLookup: "dm_validationcomment",
@@ -2259,7 +2259,7 @@
       const catId = cleanGuid(commCat.id);
       const payload = {};
       payload["dm_comment"] = c;
-      payload["opd_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
+      payload["opdksa_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
       payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
       await Xrm.WebApi.createRecord(CFG.comm, payload);
        showToast("Communication created.");
