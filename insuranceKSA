@@ -1820,8 +1820,33 @@ return [
 ];
 }
 function renderServicesTable(){
-// Filter by bubble selection (client-side, like Visits)
-const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.statusLabel === svcBubble);
+const f = getFilters();
+const filtered = allSvcRows.filter(r=>{
+  if(svcBubble !== "ALL" && r.statusLabel !== svcBubble) return false;
+  if(f.bu && r.bu !== f.bu) return false;
+  if(f.cat && r.cat !== f.cat) return false;
+  if(f.spec && r.specialty !== f.spec) return false;
+  if(f.phys && r.doctor !== f.phys) return false;
+  if(f.st && r.statusLabel !== normalizeStatus(f.st)) return false;
+  if(f.visitId){
+    const search = f.visitId.trim().toLowerCase();
+    const name = (r.visitName || "").toLowerCase();
+    const ext = (r.visitExt || "").toLowerCase();
+    if(!name.includes(search) && !ext.includes(search)) return false;
+  }
+  if(f.pname && !(r.patient || "").toLowerCase().includes(f.pname.trim().toLowerCase())) return false;
+  if(f.pphone && !(r.phone || "").includes(f.pphone)) return false;
+  if(f.insuranceAccount){
+    const search = f.insuranceAccount.trim().toLowerCase();
+    if(!(r.insuranceAccount || "").toLowerCase().includes(search)) return false;
+  }
+  if(f.subaccount){
+    const search = f.subaccount.trim().toLowerCase();
+    if(!(r.subaccount || "").toLowerCase().includes(search)) return false;
+  }
+  if(f.visitClass && r.visitClass !== f.visitClass) return false;
+  return true;
+});
 const total = filtered.length;
 const start = (svcPage - 1) * CFG.pageSize;
 const pageRows = filtered.slice(start, start + CFG.pageSize);
