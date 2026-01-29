@@ -1262,47 +1262,36 @@ function applyRollingWindow(f, days) {
 
   let start, end;
 
-  // BOTH dates provided → use exactly what user selected
+  // BOTH dates provided → use exactly what user selected (LOCAL time)
   if (hasFrom && hasTo) {
     start = new Date(f.df);
-    start.setUTCHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);  // Use LOCAL midnight, not UTC
 
     end = new Date(f.dt);
-    end.setUTCHours(23, 59, 59, 999);
+    end.setHours(23, 59, 59, 999);  // Use LOCAL end of day
   }
-  // NO dates provided → today only
+  // NO dates provided → today only (LOCAL time)
   else if (!hasFrom && !hasTo) {
     const now = new Date();
 
-    start = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
-
-    end = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      23, 59, 59, 999
-    ));
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   }
   // Only FROM date provided → use from date to from date (single day)
   else if (hasFrom) {
     start = new Date(f.df);
-    start.setUTCHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);
 
     end = new Date(f.dt || f.df);
-    end.setUTCHours(23, 59, 59, 999);
+    end.setHours(23, 59, 59, 999);
   }
   // Only TO date provided → use to date to to date (single day)
   else if (hasTo) {
     end = new Date(f.dt);
-    end.setUTCHours(23, 59, 59, 999);
+    end.setHours(23, 59, 59, 999);  // Use LOCAL time
 
     start = new Date(f.df || f.dt);
-    start.setUTCHours(0, 0, 0, 0);
+    start.setHours(0, 0, 0, 0);  // Use LOCAL time
   }
 
   f.df = start;
