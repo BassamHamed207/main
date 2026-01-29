@@ -2621,6 +2621,51 @@ commBack.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeComm(); })
 
 window.addEventListener("load", async ()=>{
 setDefaultDates();
+
+// DIAGNOSTIC: Test basic queries without joins
+const Xrm = getXrm();
+if(Xrm){
+  try{
+    // Test 1: Query services directly (no joins)
+    const svcTest = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?$select="+CFG.fields.service.id+","+CFG.fields.service.visitFk+"&$top=5");
+    console.log("=== DIAGNOSTIC: Services (no join) ===");
+    console.log("Service count:", svcTest.entities?.length || 0);
+    if(svcTest.entities?.length) {
+      console.log("Sample service visitFk values:", svcTest.entities.map(e => e[CFG.fields.service.visitFk]));
+      console.log("Full first service:", svcTest.entities[0]);
+    }
+    
+    // Test 2: Query visits directly (no joins)
+    const visTest = await Xrm.WebApi.retrieveMultipleRecords(CFG.visit, "?$select="+CFG.fields.visit.id+","+CFG.fields.visit.ext+"&$top=5");
+    console.log("=== DIAGNOSTIC: Visits (no join) ===");
+    console.log("Visit count:", visTest.entities?.length || 0);
+    if(visTest.entities?.length) {
+      console.log("Sample visit ext values:", visTest.entities.map(e => e[CFG.fields.visit.ext]));
+      console.log("Sample visit id values:", visTest.entities.map(e => e[CFG.fields.visit.id]));
+      console.log("Full first visit:", visTest.entities[0]);
+    }
+    
+    // Test 3: Check if visitFk on service looks like GUID or text
+    if(svcTest.entities?.length){
+      const sampleFk = svcTest.entities[0][CFG.fields.service.visitFk];
+      const looksLikeGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sampleFk);
+      console.log("=== DIAGNOSTIC: Field Type Analysis ===");
+      console.log("visitFk value:", sampleFk);
+      console.log("Looks like GUID:", looksLikeGuid);
+      
+      // Check for lookup field format (_fieldname_value)
+      const lookupKey = "_" + CFG.fields.service.visitFk + "_value";
+      if(svcTest.entities[0][lookupKey]){
+        console.log("LOOKUP FIELD DETECTED! Use _value format:", lookupKey, "=", svcTest.entities[0][lookupKey]);
+      }
+    }
+    
+    showToast("Check browser console (F12) for diagnostic info");
+  }catch(e){
+    console.error("Diagnostic error:", e);
+  }
+}
+
 await applyAll();
 });
 
