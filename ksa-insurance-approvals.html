@@ -2180,6 +2180,11 @@ hasMore = false;
 }
 }
 }
+console.log("=== SLA DEBUG ===");
+console.log("Total services fetched:", allServiceRows.length);
+console.log("Total log entries in minMap:", minMap.size);
+console.log("Sample minMap entries:", Array.from(minMap.entries()).slice(0, 5));
+
 if(!allServiceRows.length){
 slaP2S.textContent="—"; slaS2F.textContent="—"; slaTotal.textContent="—"; slaCount.textContent="0";
 tbBuckets.innerHTML = `<tr><td class="muted" colspan="3">No data</td></tr>`;
@@ -2255,6 +2260,12 @@ addDim(dimCat, s[CFG.fields.service.cat], tot);
 }
 }
 }
+console.log("=== SLA CALCULATION RESULTS ===");
+console.log("P2S: count=", cntP2S, "sum=", sumP2S);
+console.log("S2F: count=", cntS2F, "sum=", sumS2F);
+console.log("Total: count=", cntTot, "sum=", sumTot);
+console.log("Final count (Approved/Rejected):", finalCount);
+
 slaP2S.textContent = cntP2S ? dur(sumP2S/cntP2S) : "—";
 slaS2F.textContent = cntS2F ? dur(sumS2F/cntS2F) : "—";
 slaTotal.textContent = cntTot ? dur(sumTot/cntTot) : "—";
