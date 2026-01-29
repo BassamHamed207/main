@@ -2243,36 +2243,43 @@
     const picked = await pickLookup(CFG.commCat);
     if(picked){ commCat = picked; commCatText.textContent = picked.name; commCatText.classList.remove("muted"); }
   });
-  
   commSend.addEventListener("click", async ()=>{
-    const Xrm = getXrm();
-    if(!Xrm){ showToast("Unable to load data."); return; }
-    if(!commServiceId){ showToast("No service selected."); return; }
-    if(!commCat){ showToast("Comment Category is required."); return; }
-    const c = (commText.value||"").trim();
-    if(!c){ showToast("Comment is required."); return; }
-    setBusy(true,"Creating communication");
-    try{
-      const svcSet = await getEntitySetName(Xrm, CFG.service);
-      const catSet = await getEntitySetName(Xrm, CFG.commCat);
-      const sid = cleanGuid(commServiceId);
-      const catId = cleanGuid(commCat.id);
-      const payload = {};
-      payload["dm_comment"] = c;
-      payload["opdksa_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
-      payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
-      await Xrm.WebApi.createRecord(CFG.comm, payload);
-       showToast("Communication created.");
-      closeComm();
-    }catch(e){
-         const msg = e?.message || e?.error?.message || e?.error?.innererror?.message || JSON.stringify(e) || "";
-    }finally{
-      showToast("Communication failed: " + (msg || "Unknown error"));
-      setBusy(false,"Ready");
-      console.error("Communication creation error:", e);
-    }
-    }finally{ setBusy(false,"Ready"); }
-  });
+  const Xrm = getXrm();
+  if(!Xrm){ showToast("Unable to load data."); return; }
+  if(!commServiceId){ showToast("No service selected."); return; }
+  if(!commCat){ showToast("Comment Category is required."); return; }
+
+  const c = (commText.value||"").trim();
+  if(!c){ showToast("Comment is required."); return; }
+
+  setBusy(true,"Creating communication");
+
+  try{
+    const svcSet = await getEntitySetName(Xrm, CFG.service);
+    const catSet = await getEntitySetName(Xrm, CFG.commCat);
+
+    const sid = cleanGuid(commServiceId);
+    const catId = cleanGuid(commCat.id);
+
+    const payload = {};
+    payload["dm_comment"] = c;
+    payload["opdksa_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
+    payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
+
+    await Xrm.WebApi.createRecord(CFG.comm, payload);
+
+    showToast("Communication created.");
+    closeComm();
+  }catch(e){
+    const msg = e?.message || e?.error?.message || e?.error?.innererror?.message || "";
+    showToast("Communication failed: " + (msg || "Unknown error"));
+    console.error("Communication creation error:", e);
+  }finally{
+    setBusy(false,"Ready");
+  }
+});
+
+  
   btnSelectAll.addEventListener("click", ()=>{
     // Select from current page of filtered data
     const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
