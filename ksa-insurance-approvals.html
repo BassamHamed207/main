@@ -1679,9 +1679,12 @@ function setDefaultDates() {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // Set both inputs to today
-  dateFrom.value = todayStr;
+  // Set Date To to today
   dateTo.value = todayStr;
+
+  // Set Date From to 30 days ago (to show recent data by default)
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  dateFrom.value = thirtyDaysAgo.toISOString().slice(0, 10);
 }
 
 function resetFilters(){
