@@ -778,6 +778,21 @@
             <input id="pphone" type="text" placeholder="Phone..." />
           </div>
 
+          <div class="f">
+            <label>Insurance Account (contains)</label>
+            <input id="insuranceAccount" type="text" placeholder="Insurance account..." />
+          </div>
+
+          <div class="f">
+            <label>Subaccount (contains)</label>
+            <input id="subaccount" type="text" placeholder="Subaccount..." />
+          </div>
+
+          <div class="f">
+            <label>Visit Classification</label>
+            <select id="visitClass"><option value="">All</option></select>
+          </div>
+
           <div class="actions">
             <button class="btn" id="btnReset" type="button">Reset</button>
             <button class="btn primary" id="btnApply" type="button">Apply</button>
@@ -968,6 +983,8 @@
               <select class="mini" id="chartBU"><option value="">All BUs</option></select>
               <select class="mini" id="chartSpec"><option value="">All specialties</option></select>
               <select class="mini" id="chartPhys"><option value="">All physicians</option></select>
+              <select class="mini" id="chartCat"><option value="">All categories</option></select>
+              <select class="mini" id="chartVisitClass"><option value="">All visit classes</option></select>
               <input class="mini" id="chartFrom" type="date" />
               <input class="mini" id="chartTo" type="date" />
               <button class="btn primary" id="btnChart" type="button">Load Chart</button>
@@ -1004,6 +1021,7 @@
 
           <input class="mini" id="pvNotes" type="text" placeholder="Notes..." />
           <button class="btn primary" id="pvApplyStatus" type="button">Cancel Selected</button>
+          <button class="btn primary" id="pvAddComm" type="button">Add Communication</button>
           <button class="btn" id="pvClose" type="button">Close</button>
         </div>
       </div>
@@ -1046,6 +1064,38 @@
     </div>
   </div>
 
+  <!-- Communication Modal -->
+  <div class="modalBack" id="commBack" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Add Communication" style="width:min(720px, 100%)">
+      <div class="mTop">
+        <div class="mTitle">
+          <h3>Add Communication</h3>
+          <div class="sub" id="commSub">—</div>
+        </div>
+        <div class="mActions">
+          <button class="btn" id="commCancel" type="button">Cancel</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card col12">
+          <div class="grid2">
+            <div class="col12 fieldRow">
+              <div class="lbl">Comment Category</div>
+              <div class="val"><span id="commCatText" class="muted">Pick category…</span><button class="btn" id="commPickCat" type="button">Pick</button></div>
+            </div>
+            <div class="col12 fieldRow">
+              <div class="lbl">Comment</div>
+              <textarea class="ta" id="commText" placeholder="Write your communication..."></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px">
+            <button class="btn primary" id="commSend" type="button">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
   <script>
@@ -1080,7 +1130,10 @@
             name: "opd_newcolumn",
             ext: "opd_externalvisitid",
             doctor: "opd_doctorname",
-            spec: "opd_specialty"
+            spec: "opd_specialty",
+            insuranceAccount: "opd_contractorcompany",
+            subaccount: "opd_contractorclient",
+            classification: "opd_visitclassification"
           },
           patient: {
             id: "opd_ksapatientsid",
@@ -1133,6 +1186,9 @@
       const visitId = el("visitId");
       const pname = el("pname");
       const pphone = el("pphone");
+      const insuranceAccount = el("insuranceAccount");
+      const subaccount = el("subaccount");
+      const visitClass = el("visitClass");
 
       const btnReset = el("btnReset");
       const btnApply = el("btnApply");
@@ -1181,16 +1237,28 @@
       const pvBulkLeakageReason = el("pvBulkLeakageReason");
       const pvNotes = el("pvNotes");
       const pvApplyStatus = el("pvApplyStatus");
+      const pvAddComm = el("pvAddComm");
       const pvPrev = el("pvPrev");
       const pvNext = el("pvNext");
       const pvPageInfo = el("pvPageInfo");
       const pvSortCreated = el("pvSortCreated");
+      
+      // Communication modal elements
+      const commBack = el("commBack");
+      const commSub = el("commSub");
+      const commCancel = el("commCancel");
+      const commPickCat = el("commPickCat");
+      const commCatText = el("commCatText");
+      const commText = el("commText");
+      const commSend = el("commSend");
 
       const chartCanvas = el("trendChart");
       const chartLeakageReason = el("chartLeakageReason");
       const chartBU = el("chartBU");
       const chartSpec = el("chartSpec");
       const chartPhys = el("chartPhys");
+      const chartCat = el("chartCat");
+      const chartVisitClass = el("chartVisitClass");
       const chartFrom = el("chartFrom");
       const chartTo = el("chartTo");
       const btnChart = el("btnChart");
@@ -1211,7 +1279,8 @@
           btnApply, btnReset, btnExport,
           btnBulkApply, btnSelectAll, btnClearSel,
           svcPrev, svcNext, visPrev, visNext,
-          pvApplyStatus, pvPrev, pvNext,
+          pvApplyStatus, pvAddComm, pvPrev, pvNext,
+          commPickCat, commSend, commCancel,
           btnChart
         ];
         ds.forEach(x=>{ if(x) x.disabled = !!b; });
@@ -1312,7 +1381,10 @@
       st: (st.value || "").trim(),
       visitId: (visitId.value || "").trim(),
       pname: (pname.value || "").trim(),
-      pphone: (pphone.value || "").trim()
+      pphone: (pphone.value || "").trim(),
+      insuranceAccount: (insuranceAccount.value || "").trim(),
+      subaccount: (subaccount.value || "").trim(),
+      visitClass: (visitClass.value || "").trim()
     };
   }
 
@@ -1325,13 +1397,16 @@
       dt,
       end,
       bu: (chartBU.value || "").trim(),
-      cat: "",
+      cat: (chartCat.value || "").trim(),
       spec: (chartSpec.value || "").trim(),
       phys: (chartPhys.value || "").trim(),
+      visitClass: (chartVisitClass.value || "").trim(),
       st: "",
       visitId: "",
       pname: "",
       pphone: "",
+      insuranceAccount: "",
+      subaccount: "",
       leakageReason: (chartLeakageReason.value || "").trim()
     };
   }
@@ -1392,6 +1467,9 @@
     if(f.spec)   out += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
     if(f.phys)   out += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
     if(f.visitId)out += `<condition attribute="${v.ext}" operator="like" value="%${xmlEsc(f.visitId)}%" />`;
+    if(f.insuranceAccount) out += `<condition attribute="${v.insuranceAccount}" operator="like" value="%${xmlEsc(f.insuranceAccount)}%" />`;
+    if(f.subaccount) out += `<condition attribute="${v.subaccount}" operator="like" value="%${xmlEsc(f.subaccount)}%" />`;
+    if(f.visitClass) out += `<condition attribute="${v.classification}" operator="eq" value="${xmlEsc(f.visitClass)}" />`;
     if(!out) return "";
     return `<filter type="and">${out}</filter>`;
   }
@@ -1751,6 +1829,7 @@
     chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
     chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
     if(svc.bu && f.bu) chartSvcFilters += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
+    if(f.cat) chartSvcFilters += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
     if(f.leakageReason) chartSvcFilters += `<condition attribute="${svc.leakageReason}" operator="eq" value="${xmlEsc(f.leakageReason)}" />`;
 
     const whereSvc = `<filter type="and">${chartSvcFilters}</filter>`;
@@ -1758,6 +1837,7 @@
     let chartVFilt = "";
     if(f.spec) chartVFilt += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
     if(f.phys) chartVFilt += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
+    if(f.visitClass) chartVFilt += `<condition attribute="${v.classification}" operator="eq" value="${xmlEsc(f.visitClass)}" />`;
     const vFilt = chartVFilt ? `<filter type="and">${chartVFilt}</filter>` : "";
 
     return `
@@ -1780,7 +1860,7 @@
     const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
 
     const whereSvc = `<filter type="and">${fxServiceBaseFilters(f)}</filter>`;
-    const vFilt = fxVisitLinkFilters({ ...f, spec:"", phys:"", visitId:"" });
+    const vFilt = fxVisitLinkFilters({ ...f, spec:"", phys:"", visitId:"", insuranceAccount:"", subaccount:"", visitClass:"" });
     const pFilt = fxPatientLinkFilters({ ...f, pname:"", pphone:"" });
 
     return `
@@ -1796,6 +1876,7 @@
           <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
             <attribute name="${v.spec}" groupby="true" alias="spec" />
             <attribute name="${v.doctor}" groupby="true" alias="doc" />
+            <attribute name="${v.classification}" groupby="true" alias="vclass" />
             ${vFilt}
           </link-entity>
 
@@ -2044,7 +2125,7 @@
     if(!f.df || !f.dt) return;
     
     const chunks = generateDateChunks(f.df, f.dt, CFG.chunkDays);
-    const buVals=[], catVals=[], stVals=[], specVals=[], docVals=[];
+    const buVals=[], catVals=[], stVals=[], specVals=[], docVals=[], visitClassVals=[];
     
     for(const chunk of chunks){
       try{
@@ -2063,6 +2144,9 @@
           const s = e.st;   if(s!==null && s!==undefined && String(s).trim()!=="") stVals.push(String(s));
           const sp = e.spec;if(sp!==null && sp!==undefined && String(sp).trim()!=="") specVals.push(String(sp));
           const d = e.doc;  if(d!==null && d!==undefined && String(d).trim()!=="") docVals.push(String(d));
+          const vc = e.vclass; 
+          const vcLbl = getFormatted(e, "vclass") || (vc===null||vc===undefined ? "" : String(vc));
+          if(vcLbl) visitClassVals.push(vcLbl);
         }
       }catch(e){
         // Continue with other chunks
@@ -2074,10 +2158,13 @@
     fillSelect(st, distinctOptions(stVals));
     fillSelect(spec, distinctOptions(specVals));
     fillSelect(phys, distinctOptions(docVals));
+    fillSelect(visitClass, distinctOptions(visitClassVals));
 
     fillSelect(chartBU, distinctOptions(buVals));
     fillSelect(chartSpec, distinctOptions(specVals));
     fillSelect(chartPhys, distinctOptions(docVals));
+    fillSelect(chartCat, distinctOptions(catVals));
+    fillSelect(chartVisitClass, distinctOptions(visitClassVals));
   }
 
   async function loadLeakageReasons(){
@@ -2444,6 +2531,90 @@
     }
   });
 
+  // Communication modal handlers
+  let commCat = null, commServiceId = null;
+  
+  function openComm(){ commBack.classList.add("show"); commBack.setAttribute("aria-hidden","false"); }
+  function closeComm(){
+    commBack.classList.remove("show");
+    commBack.setAttribute("aria-hidden","true");
+    commCat = null;
+    commCatText.textContent = "Pick category…";
+    commCatText.classList.add("muted");
+    commText.value = "";
+  }
+  
+  commCancel.addEventListener("click", closeComm);
+  commBack.addEventListener("click", (e)=>{ if(e.target===commBack) closeComm(); });
+  commBack.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeComm(); });
+  
+  async function pickLookup(entityLogical){
+    const Xrm = getXrm();
+    if(!Xrm) return null;
+    try{
+      const result = await Xrm.Utility.lookupObjects({
+        entityTypes: [entityLogical],
+        allowMultiSelect: false
+      });
+      if(result && result.length > 0){
+        return { id: result[0].id, name: result[0].name };
+      }
+    }catch(e){ return null; }
+    return null;
+  }
+  
+  function cleanGuid(g){
+    return (g||"").replace(/[{}]/g,"").toLowerCase();
+  }
+  
+  async function getEntitySetName(Xrm, logicalName){
+    try{
+      const md = await Xrm.Utility.getEntityMetadata(logicalName);
+      return md.EntitySetName;
+    }catch(e){ return logicalName + "s"; }
+  }
+  
+  pvAddComm.addEventListener("click", async ()=>{
+    const ids = Array.from(modalSelected);
+    if(ids.length !== 1){ showToast("To create communication, select one service only."); return; }
+    commServiceId = ids[0];
+    commSub.textContent = "Service: " + (modalRows.find(x=>x.id===commServiceId)?.serviceName || commServiceId);
+    closeComm();
+    openComm();
+  });
+  
+  commPickCat.addEventListener("click", async ()=>{
+    const picked = await pickLookup(CFG.commCat);
+    if(picked){ commCat = picked; commCatText.textContent = picked.name; commCatText.classList.remove("muted"); }
+  });
+  
+  commSend.addEventListener("click", async ()=>{
+    const Xrm = getXrm();
+    if(!Xrm){ showToast("Unable to load data."); return; }
+    if(!commServiceId){ showToast("No service selected."); return; }
+    if(!commCat){ showToast("Comment Category is required."); return; }
+    const c = (commText.value||"").trim();
+    if(!c){ showToast("Comment is required."); return; }
+    setBusy(true,"Creating communication");
+    try{
+      const svcSet = await getEntitySetName(Xrm, CFG.service);
+      const catSet = await getEntitySetName(Xrm, CFG.commCat);
+      const sid = cleanGuid(commServiceId);
+      const catId = cleanGuid(commCat.id);
+      const payload = {};
+      payload["dm_comment"] = c;
+      payload["opd_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
+      payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
+      await Xrm.WebApi.createRecord(CFG.comm, payload);
+      showToast("Communication created successfully!");
+      closeComm();
+    }catch(e){
+      showToast("Failed to create communication: " + (e.message || e));
+    }finally{
+      setBusy(false,"Ready");
+    }
+  });
+
   btnSelectAll.addEventListener("click", ()=>{
     // Select from current page of filtered data
     const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
@@ -2747,6 +2918,9 @@
     visitId.value = "";
     pname.value = "";
     pphone.value = "";
+    insuranceAccount.value = "";
+    subaccount.value = "";
+    visitClass.value = "";
 
     bu.value = "";
     cat.value = "";
@@ -2759,6 +2933,8 @@
     chartBU.value = "";
     chartSpec.value = "";
     chartPhys.value = "";
+    chartCat.value = "";
+    chartVisitClass.value = "";
     chartFrom.value = toIsoDate(chartDefaultFrom);
     chartTo.value = toIsoDate(now);
 
