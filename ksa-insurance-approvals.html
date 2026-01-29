@@ -1744,7 +1744,7 @@ tabOverview.addEventListener("click", ()=>setTab("overview"));
 tabSLA.addEventListener("click", ()=>setTab("sla"));
 tabServices.addEventListener("click", ()=>setTab("services"));
 
-let svcPage=1, svcTotal=0, svcRows=[], svcSortDir="desc", svcBubble="ALL", svcStatusAgg=null;
+let svcPage=1, svcTotal=0, svcRows=[], allSvcRows=[], svcSortDir="desc", svcBubble="ALL", svcStatusAgg=null;
 let visAll=[], visPage=1, visSortDir="desc", visBubble="ALL", visStatusAgg=null;
 let slaLoaded=false, overviewLoaded=false;
 let lastOverviewSig="", lastSlaSig="";
@@ -1790,8 +1790,14 @@ return [
 ];
 }
 function renderServicesTable(){
-svcCount.textContent = fmtInt(svcTotal) + " services";
-tbServices.innerHTML = (svcRows.map(r=>{
+// Filter by bubble selection (client-side, like Visits)
+const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.statusLabel === svcBubble);
+const total = filtered.length;
+const start = (svcPage - 1) * CFG.pageSize;
+const pageRows = filtered.slice(start, start + CFG.pageSize);
+
+svcCount.textContent = fmtInt(total) + " services";
+tbServices.innerHTML = (pageRows.map(r=>{
 return `<tr>
 <td>${escapeHtml(r.createdText)}</td>
 <td>${escapeHtml(r.serviceName)}</td>
@@ -1803,11 +1809,11 @@ return `<tr>
 <td class="rowActions"><button class="btn" data-open-service="${escapeHtml(r.id)}">Open</button></td>
 </tr>`;
 }).join("")) || `<tr><td class="muted" colspan="8">No data</td></tr>`;
-const from = (svcTotal===0) ? 0 : (svcPage-1)*CFG.pageSize + 1;
-const to = Math.min(svcPage*CFG.pageSize, svcTotal);
-svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(svcTotal);
-svcPrev.disabled = svcPage<=1;
-svcNext.disabled = to>=svcTotal;
+const from = (total === 0) ? 0 : start + 1;
+const to = Math.min(start + CFG.pageSize, total);
+svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(total);
+svcPrev.disabled = svcPage <= 1;
+svcNext.disabled = to >= total;
 }
 
 function renderVisitsTable() {
@@ -1899,7 +1905,9 @@ const rows = await retrieveAggChunked(Xrm, CFG.service, (chunkF)=>fxServicesStat
 const map = new Map();
 rows.forEach(r=>{
 const raw = r["st"];
-const ns = normalizeStatus(raw);
+// Use formatted value for OptionSet fields
+const formatted = getFormatted(r, "st") || (raw === null || raw === undefined ? "" : String(raw));
+const ns = normalizeStatus(formatted);
 const c = Number(r["cnt"]||0);
 map.set(ns, (map.get(ns)||0)+c);
 });
@@ -1928,7 +1936,9 @@ for(const r of catRows){
 const catv = r["cat"] ? String(r["cat"]) : "";
 if(!catv) continue;
 const raw = r["st"];
-const ns = normalizeStatus(raw);
+// Use formatted value for OptionSet fields
+const formatted = getFormatted(r, "st") || (raw === null || raw === undefined ? "" : String(raw));
+const ns = normalizeStatus(formatted);
 const cnt = Number(r["cnt"]||0);
 if(!catMap.has(catv)) catMap.set(catv,{total:0,approved:0,rejected:0});
 const o = catMap.get(catv);
@@ -1943,48 +1953,31 @@ return `<tr><td>${escapeHtml(k)}</td><td>${fmtInt(v.total)}</td><td>${fmtInt(v.a
 overviewLoaded = true;
 }
 
-async function loadServiceStatusAgg(Xrm){
-const f = getLimitedFilters();
-const rows = await retrieveAllFetch(Xrm, CFG.service, fxServicesStatusAgg(f));
-const map = new Map();
-rows.forEach(r=>{
-const raw = r["st"];
-const ns = normalizeStatus(raw);
-const c = Number(r["cnt"]||0);
-map.set(ns, (map.get(ns)||0)+c);
-});
-svcStatusAgg = map;
-renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, async (k)=>{
+function renderServiceBubbles(){
+// Render bubbles using svcStatusAgg (built from loaded data in loadServicesPage)
+renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (k)=>{
 svcBubble = k;
 svcPage = 1;
-const Xrm2 = getXrm();
-if(!Xrm2) return;
-setBusy(true,"Loading");
-try{ await loadServicesPage(Xrm2); } finally { setBusy(false,"Ready"); }
+renderServicesTable();
 });
 }
 async function loadServicesPage(Xrm){
 const f = getLimitedFilters();
 console.log("=== loadServicesPage: filters ===", f);
 
-const countFx = fxServicesCount(f, svcBubble);
-console.log("=== loadServicesPage: count FetchXML ===", countFx);
-
-const cntRows = await retrieveAllFetch(Xrm, CFG.service, countFx);
-console.log("=== loadServicesPage: count result ===", cntRows);
-
-svcTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
-console.log("=== loadServicesPage: svcTotal ===", svcTotal);
-
-const fx = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir, svcBubble);
-console.log("=== loadServicesPage: page FetchXML ===", fx);
+// Load ALL services (no bubble filter, no pagination) - filter client-side like Visits
+const fx = fxServicesPage(f, 1, 5000, svcSortDir, "ALL");
+console.log("=== loadServicesPage: FetchXML ===", fx);
 
 const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
-console.log("=== loadServicesPage: rows ===", rows.length, rows);
-svcRows = rows.map(s=>{
+console.log("=== loadServicesPage: total rows ===", rows.length);
+
+allSvcRows = rows.map(s=>{
 const dt = s[CFG.fields.service.createdon] ? new Date(s[CFG.fields.service.createdon]) : null;
 const raw = s[CFG.fields.service.approval];
-const ns = normalizeStatus(raw);
+// Use formatted value for OptionSet fields
+const formatted = getFormatted(s, CFG.fields.service.approval) || (raw === null || raw === undefined ? "" : String(raw));
+const ns = normalizeStatus(formatted);
 return {
 id: s[CFG.fields.service.id],
 createdText: dt ? dt.toLocaleString() : "—",
@@ -1994,9 +1987,23 @@ doctor: s["v."+CFG.fields.visit.doctor] || "—",
 specialty: s["v."+CFG.fields.visit.spec] || "—",
 patient: s["p."+CFG.fields.patient.name] || "—",
 phone: s["p."+CFG.fields.patient.phone] || "—",
-statusLabel: ns
+statusLabel: ns,
+rawStatus: raw // Keep raw value for debugging
 };
 });
+
+// Sort by created date
+allSvcRows.sort((a,b) => svcSortDir === "desc" ? (b.createdMs - a.createdMs) : (a.createdMs - b.createdMs));
+
+// Build status aggregation from loaded data (more accurate than separate query)
+const statusMap = new Map();
+for(const r of allSvcRows){
+statusMap.set(r.statusLabel, (statusMap.get(r.statusLabel) || 0) + 1);
+}
+svcStatusAgg = statusMap;
+console.log("=== Services status breakdown ===", Object.fromEntries(statusMap));
+
+renderServiceBubbles();
 renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
@@ -2549,24 +2556,24 @@ return;
 }
 });
 
-btnExport.addEventListener("click", ()=>exportCSV(svcRows));
-
-svcPrev.addEventListener("click", async ()=>{
-if(svcPage<=1) return;
-const Xrm = getXrm();
-if(!Xrm) return;
-svcPage--;
-setBusy(true,"Loading");
-try{ await loadServicesPage(Xrm); } finally { setBusy(false,"Ready"); }
+btnExport.addEventListener("click", ()=>{
+// Export filtered data based on current bubble selection
+const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.statusLabel === svcBubble);
+exportCSV(filtered);
 });
-svcNext.addEventListener("click", async ()=>{
-const to = Math.min(svcPage*CFG.pageSize, svcTotal);
-if(to>=svcTotal) return;
-const Xrm = getXrm();
-if(!Xrm) return;
+
+svcPrev.addEventListener("click", ()=>{
+if(svcPage<=1) return;
+svcPage--;
+renderServicesTable();
+});
+svcNext.addEventListener("click", ()=>{
+const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.statusLabel === svcBubble);
+const total = filtered.length;
+const maxPage = Math.max(1, Math.ceil(total / CFG.pageSize));
+if(svcPage >= maxPage) return;
 svcPage++;
-setBusy(true,"Loading");
-try{ await loadServicesPage(Xrm); } finally { setBusy(false,"Ready"); }
+renderServicesTable();
 });
 visPrev.addEventListener("click", ()=>{
 if(visPage<=1) return;
@@ -2581,13 +2588,11 @@ if(to>=total) return;
 visPage++;
 renderVisitsTable();
 });
-svcSortCreated.addEventListener("click", async ()=>{
+svcSortCreated.addEventListener("click", ()=>{
 svcSortDir = (svcSortDir==="desc") ? "asc" : "desc";
+allSvcRows.sort((a,b) => svcSortDir === "desc" ? (b.createdMs - a.createdMs) : (a.createdMs - b.createdMs));
 svcPage = 1;
-const Xrm = getXrm();
-if(!Xrm) return;
-setBusy(true,"Loading");
-try{ await loadServicesPage(Xrm); } finally { setBusy(false,"Ready"); }
+renderServicesTable();
 });
 visSortLatest.addEventListener("click", ()=>{
 visSortDir = (visSortDir==="desc") ? "asc" : "desc";
@@ -2615,10 +2620,9 @@ visPage = 1;
 slaLoaded = false;
 overviewLoaded = false;
 const p1 = loadDimensions(Xrm);
-const p2 = loadServiceStatusAgg(Xrm);
-const p3 = loadServicesPage(Xrm);
-const p4 = loadVisitsAll(Xrm);
-await Promise.all([p1,p2,p3,p4]);
+const p2 = loadServicesPage(Xrm);
+const p3 = loadVisitsAll(Xrm);
+await Promise.all([p1,p2,p3]);
 setBusy(false,"Ready");
 const isOverviewTab = tabOverview.getAttribute("aria-selected")==="true";
 if(isOverviewTab){
