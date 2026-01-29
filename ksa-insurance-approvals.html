@@ -1321,7 +1321,7 @@ function getLimitedFilters() {
 
   if (!__rollingToastShown) {
     __rollingToastShown = true;
-    showToast("Visits & Services: today. Overview & SLA: full range (chunked).");
+    showToast("Default: last 30 days. All queries use chunking for large datasets.");
   }
 
   return f;
@@ -1716,9 +1716,13 @@ function setDefaultDates() {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // Set both inputs to today
-  dateFrom.value = todayStr;
+  // Set "Date To" to today
   dateTo.value = todayStr;
+
+  // Set "Date From" to 30 days ago by default (so visits from last 30 days show)
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const fromStr = thirtyDaysAgo.toISOString().slice(0, 10);
+  dateFrom.value = fromStr;
 }
 
 function resetFilters(){
