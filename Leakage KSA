@@ -1491,7 +1491,7 @@
   let leakageReasonOptions = LEAKAGE_REASON_CHOICES.slice();
   let leakageReasonValueToLabel = new Map(leakageReasonOptions.map(o=>[String(o.value), o.label]));
 
-  let svcPage=1, svcTotal=0, svcRows=[], svcSelected=new Set(), svcSortDir="desc", svcBubble="ALL";
+  let svcPage=1, svcTotal=0, svcRows=[], allSvcRows=[], svcSelected=new Set(), svcSortDir="desc", svcBubble="ALL";
   let svcStatusAgg=null;
 
   let visAll=[], visPage=1, visSortDir="desc", visBubble="ALL", visStatusAgg=null;
@@ -1549,10 +1549,16 @@
   }
 
   function renderServicesTable(){
-    svcCount.textContent = fmtInt(svcTotal) + " services";
+    // Filter by bubble selection (client-side)
+    const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
+    const total = filtered.length;
+    const start = (svcPage - 1) * CFG.pageSize;
+    const pageRows = filtered.slice(start, start + CFG.pageSize);
+
+    svcCount.textContent = fmtInt(total) + " services";
     updateSelCount();
 
-    tbServices.innerHTML = (svcRows.map(r=>{
+    tbServices.innerHTML = (pageRows.map(r=>{
       const checked = svcSelected.has(r.id) ? "checked" : "";
       return `
         <tr>
@@ -1572,12 +1578,12 @@
       `;
     }).join("")) || `<tr><td class="muted" colspan="10">No data</td></tr>`;
 
-    const from = (svcTotal===0) ? 0 : (svcPage-1)*CFG.pageSize + 1;
-    const to = Math.min(svcPage*CFG.pageSize, svcTotal);
+    const from = (total === 0) ? 0 : start + 1;
+    const to = Math.min(start + CFG.pageSize, total);
 
-    svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(svcTotal);
-    svcPrev.disabled = svcPage<=1;
-    svcNext.disabled = to>=svcTotal;
+    svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(total);
+    svcPrev.disabled = svcPage <= 1;
+    svcNext.disabled = to >= total;
   }
 
   function renderVisitsTable(){
@@ -2094,32 +2100,30 @@
 
     const f = getFilters();
 
-    // For count, use chunks
-    if(f.df && f.dt){
-      const chunks = generateDateChunks(f.df, f.dt, CFG.chunkDays);
-      let totalCount = 0;
-      
-      for(const chunk of chunks){
-        try{
-          const chunkFilters = { ...f, df: chunk.start, dt: chunk.end, end: chunk.end };
-          const fxCnt = fxServicesCount(chunkFilters);
-          const resCnt = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxCnt));
-          const cnt = (resCnt.entities && resCnt.entities[0] && (resCnt.entities[0].cnt || resCnt.entities[0]["cnt"])) || 0;
-          totalCount += Number(cnt) || 0;
-        }catch(e){
-          // Continue
-        }
-      }
-      svcTotal = Math.min(totalCount, CFG.maxRecords);
-    }else{
-      svcTotal = 0;
+    // Load ALL services (not just one page) for client-side filtering
+    const fxAll = fxServicesPage(f, 1, 5000, svcSortDir);
+    const ents = await retrieveAllFetch(Xrm, CFG.service, fxAll, CFG.maxRecords);
+
+    allSvcRows = ents.map(buildSvcRow);
+    
+    // Sort by created date
+    allSvcRows.sort((a,b) => svcSortDir === "desc" ? (b.created?.getTime() || 0) - (a.created?.getTime() || 0) : (a.created?.getTime() || 0) - (b.created?.getTime() || 0));
+    
+    // Build status aggregation from loaded data
+    const statusMap = new Map();
+    for(const r of allSvcRows){
+      statusMap.set(r.bucket, (statusMap.get(r.bucket) || 0) + 1);
     }
-
-    const fxPage = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir);
-    const res = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(fxPage));
-    const ents = (res && res.entities) ? res.entities : [];
-
-    svcRows = ents.map(buildSvcRow);
+    svcStatusAgg = statusMap;
+    
+    // Render bubbles with updated counts
+    renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (key)=>{
+      svcBubble = key;
+      svcPage = 1;
+      renderServicesTable();
+      wireTableActions();
+    });
+    
     renderServicesTable();
   }
 
@@ -2206,23 +2210,15 @@
 
     renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (key)=>{
       svcBubble = key;
-      applySvcBubbleToCurrentPage();
+      svcPage = 1;
+      renderServicesTable();
+      wireTableActions();
     });
 
     renderOverviewFromSvcAgg(bucketMap, stList, lrList);
   }
 
-  function applySvcBubbleToCurrentPage(){
-    if(svcBubble === "ALL"){
-      renderServicesTable();
-      return;
-    }
-    const keep = svcRows.filter(r=>r.bucket === svcBubble);
-    const backup = svcRows;
-    svcRows = keep;
-    renderServicesTable();
-    svcRows = backup;
-  }
+  // Removed applySvcBubbleToCurrentPage - filtering now happens in renderServicesTable
 
   async function loadVisits(){
     const Xrm = getXrm();
@@ -2449,7 +2445,11 @@
   });
 
   btnSelectAll.addEventListener("click", ()=>{
-    for(const r of svcRows){
+    // Select from current page of filtered data
+    const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
+    const start = (svcPage - 1) * CFG.pageSize;
+    const pageRows = filtered.slice(start, start + CFG.pageSize);
+    for(const r of pageRows){
       if(r && r.id) svcSelected.add(r.id);
     }
     updateSelCount();
@@ -2517,46 +2517,31 @@
     });
   }
 
-  svcPrev.addEventListener("click", async ()=>{
-    if(svcPage>1){
+  svcPrev.addEventListener("click", ()=>{
+    if(svcPage > 1){
       svcPage--;
-      setBusy(true,"Loading…");
-      try{
-        await loadServicesPage();
-        applySvcBubbleToCurrentPage();
-        wireTableActions();
-      }finally{
-        setBusy(false,"Ready");
-      }
-    }
-  });
-
-  svcNext.addEventListener("click", async ()=>{
-    const maxPage = Math.max(1, Math.ceil((svcTotal||0)/CFG.pageSize));
-    if(svcPage<maxPage){
-      svcPage++;
-      setBusy(true,"Loading…");
-      try{
-        await loadServicesPage();
-        applySvcBubbleToCurrentPage();
-        wireTableActions();
-      }finally{
-        setBusy(false,"Ready");
-      }
-    }
-  });
-
-  svcSortCreated.addEventListener("click", async ()=>{
-    svcSortDir = (svcSortDir==="desc" ? "asc" : "desc");
-    svcPage = 1;
-    setBusy(true,"Loading…");
-    try{
-      await loadServicesPage();
-      applySvcBubbleToCurrentPage();
+      renderServicesTable();
       wireTableActions();
-    }finally{
-      setBusy(false,"Ready");
     }
+  });
+
+  svcNext.addEventListener("click", ()=>{
+    const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
+    const total = filtered.length;
+    const maxPage = Math.max(1, Math.ceil(total / CFG.pageSize));
+    if(svcPage < maxPage){
+      svcPage++;
+      renderServicesTable();
+      wireTableActions();
+    }
+  });
+
+  svcSortCreated.addEventListener("click", ()=>{
+    svcSortDir = (svcSortDir === "desc" ? "asc" : "desc");
+    allSvcRows.sort((a,b) => svcSortDir === "desc" ? (b.created?.getTime() || 0) - (a.created?.getTime() || 0) : (a.created?.getTime() || 0) - (b.created?.getTime() || 0));
+    svcPage = 1;
+    renderServicesTable();
+    wireTableActions();
   });
 
   visPrev.addEventListener("click", ()=>{
@@ -2604,39 +2589,32 @@
     setTimeout(()=>URL.revokeObjectURL(url), 1500);
   }
 
-  btnExport.addEventListener("click", async ()=>{
-    const Xrm = getXrm();
-    if(!Xrm || !Xrm.WebApi) return showToast("Xrm.WebApi not available.");
-
-    setBusy(true,"Exporting…");
-    try{
-      const f = getFilters();
-      const fx = fxServicesPage(f, 1, 5000, "desc").replace(/page="1"/,'');
-      const ents = await retrieveAllFetch(Xrm, CFG.service, fx, CFG.maxRecords);
-      const rows = ents.map(buildSvcRow);
-
-      const header = ["Created","Service","Doctor","Specialty","Patient","Phone","Bucket","Status","Leakage Reason","Notes","Visit"];
-      const body = rows.map(r=>[
-        r.createdText,
-        r.serviceName,
-        r.doctor,
-        r.specialty,
-        r.patient,
-        r.phone,
-        r.bucket,
-        r.statusText,
-        r.leakageReasonLabel || "",
-        r.notes || "",
-        (r.visitName || r.visitExt || r.visitId || "")
-      ]);
-
-      downloadCsv("KSA_Services_Export.csv", [header, ...body]);
-      showToast("Export ready.");
-    }catch(e){
-      showToast("Export failed.");
-    }finally{
-      setBusy(false,"Ready");
+  btnExport.addEventListener("click", ()=>{
+    // Export filtered data based on current bubble selection
+    const filtered = (svcBubble === "ALL") ? allSvcRows : allSvcRows.filter(r => r.bucket === svcBubble);
+    
+    if(!filtered.length){ 
+      showToast("No data to export."); 
+      return; 
     }
+
+    const header = ["Created","Service","Doctor","Specialty","Patient","Phone","Bucket","Status","Leakage Reason","Notes","Visit"];
+    const body = filtered.map(r=>[
+      r.createdText,
+      r.serviceName,
+      r.doctor,
+      r.specialty,
+      r.patient,
+      r.phone,
+      r.bucket,
+      r.statusText,
+      r.leakageReasonLabel || "",
+      r.notes || "",
+      (r.visitName || r.visitExt || r.visitId || "")
+    ]);
+
+    downloadCsv("KSA_Services_Export.csv", [header, ...body]);
+    showToast("Export ready (" + filtered.length + " rows).");
   });
 
   // CHART - Uses chunked queries, independent from main filters
@@ -2813,15 +2791,7 @@
     await loadLeakageReasons();
 
     await loadOverview();
-    await loadServicesPage();
-
-    renderBubbles(svcBubbles, buildSvcBubbleItems(), svcBubble, (key)=>{
-      svcBubble = key;
-      applySvcBubbleToCurrentPage();
-      wireTableActions();
-    });
-
-    applySvcBubbleToCurrentPage();
+    await loadServicesPage();  // This now loads all services and renders bubbles
 
     await loadVisits();
     wireTableActions();
