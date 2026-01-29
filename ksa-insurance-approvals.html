@@ -2003,8 +2003,9 @@ renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
 const f = getLimitedFilters();
-const base = await retrieveAllFetch(Xrm, CFG.service, fxVisitsAggAll(f));
-const stRows = await retrieveAllFetch(Xrm, CFG.service, fxVisitsStatusCounts(f));
+// Use chunked queries to avoid 50k aggregate limit
+const base = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxVisitsAggAll(chunkF), f, CFG.chunkDays);
+const stRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxVisitsStatusCounts(chunkF), f, CFG.chunkDays);
 const stMap = new Map();
 for(const r of stRows){
 const vid = r["visitid"];
@@ -2087,43 +2088,11 @@ f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
 }
 const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient, lg = CFG.fields.log;
-function fxLogMinAll_inline(chunkF){
-const whereSvc = `<filter type="and">${fxServiceBaseFilters(chunkF)}</filter>`;
-const vFilt = fxVisitLinkFilters(chunkF);
-const pFilt = fxPatientLinkFilters(chunkF);
-return (`<fetch aggregate="true">
-<entity name="${CFG.log}">
-<attribute name="${lg.serviceLookup}" groupby="true" alias="sid" />
-<attribute name="${lg.status}" groupby="true" alias="ast" />
-<attribute name="${lg.dt}" aggregate="min" alias="firstdt" />
-<link-entity name="${CFG.service}" from="${svc.id}" to="${lg.serviceLookup}" link-type="inner" alias="s">
-${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
-<link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
-</link-entity>
-</entity>
-</fetch>`).replace(/\s+/g," ").trim();
-}
-const logRows = await retrieveAggChunked(Xrm, CFG.log, fxLogMinAll_inline, f, CFG.chunkDays);
+
 // Normalize GUID for consistent matching
 const normalizeGuid = (g) => g ? String(g).replace(/[{}]/g,"").toLowerCase() : "";
 
-const minMap = new Map();
-for(const r of logRows){
-const sidRaw = r["sid"];
-if(!sidRaw) continue;
-const sid = normalizeGuid(sidRaw);
-const astRaw = r["ast"];
-const dtRaw = r["firstdt"];
-const ns = normalizeStatus(astRaw);
-const t = msFrom(dtRaw);
-if(!minMap.has(sid)) minMap.set(sid, { posted:null, sent:null, approved:null, rejected:null });
-const o = minMap.get(sid);
-if(ns==="Posted" && (o.posted===null || t < o.posted)) o.posted = t;
-if(ns==="Sent" && (o.sent===null || t < o.sent)) o.sent = t;
-if(ns==="Approved" && (o.approved===null || t < o.approved)) o.approved = t;
-if(ns==="Rejected" && (o.rejected===null || t < o.rejected)) o.rejected = t;
-}
+// First, fetch all services using paging (not aggregation)
 const chunks = getDateChunks(f.df, f.end, CFG.chunkDays);
 const allServiceRows = [];
 for(const chunk of chunks){
@@ -2137,8 +2106,73 @@ const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
 allServiceRows.push(...rows);
 hasMore = rows.length === 5000;
 page++;
-if(page > 50) break;
+if(page > 100) break;
 }catch(e){ hasMore = false; }
+}
+}
+
+// Build a set of service IDs for filtering log queries
+const serviceIds = new Set();
+for(const s of allServiceRows){
+const sid = s[CFG.fields.service.id];
+if(sid) serviceIds.add(normalizeGuid(sid));
+}
+
+// Fetch log records using paging (NOT aggregation) to avoid 50k limit
+// Query logs for services created in the date range
+const minMap = new Map();
+
+function fxLogRecords(chunkF, pageNum){
+const whereSvc = `<filter type="and">${fxServiceBaseFilters(chunkF)}</filter>`;
+const vFilt = fxVisitLinkFilters(chunkF);
+const pFilt = fxPatientLinkFilters(chunkF);
+return (`<fetch page="${pageNum}" count="5000">
+<entity name="${CFG.log}">
+<attribute name="${lg.serviceLookup}" />
+<attribute name="${lg.status}" />
+<attribute name="${lg.dt}" />
+<link-entity name="${CFG.service}" from="${svc.id}" to="${lg.serviceLookup}" link-type="inner" alias="s">
+${whereSvc}
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
+</link-entity>
+</entity>
+</fetch>`).replace(/\s+/g," ").trim();
+}
+
+// Fetch logs in chunks with paging
+for(const chunk of chunks){
+const chunkF = {...f, df: chunk.start, end: chunk.end};
+let page = 1;
+let hasMore = true;
+while(hasMore){
+try{
+const fx = fxLogRecords(chunkF, page);
+const rows = await retrieveAllFetch(Xrm, CFG.log, fx);
+// Process each log record to find MIN timestamp per service+status
+for(const r of rows){
+const sidRaw = r[lg.serviceLookup];
+if(!sidRaw) continue;
+const sid = normalizeGuid(sidRaw);
+const statusRaw = r[lg.status];
+const dtRaw = r[lg.dt];
+const ns = normalizeStatus(statusRaw);
+const t = msFrom(dtRaw);
+if(t === null) continue;
+if(!minMap.has(sid)) minMap.set(sid, { posted:null, sent:null, approved:null, rejected:null });
+const o = minMap.get(sid);
+if(ns==="Posted" && (o.posted===null || t < o.posted)) o.posted = t;
+if(ns==="Sent" && (o.sent===null || t < o.sent)) o.sent = t;
+if(ns==="Approved" && (o.approved===null || t < o.approved)) o.approved = t;
+if(ns==="Rejected" && (o.rejected===null || t < o.rejected)) o.rejected = t;
+}
+hasMore = rows.length === 5000;
+page++;
+if(page > 200) break; // Safety limit
+}catch(e){ 
+console.warn("Log fetch error:", e.message || e);
+hasMore = false; 
+}
 }
 }
 if(!allServiceRows.length){
