@@ -1861,8 +1861,14 @@ function renderVisitsTable() {
       if (f.spec && v.specialty !== f.spec) return false;
       if (f.phys && v.doctor !== f.phys) return false;
       if (f.bu && v.bu !== f.bu) return false;
-      if (f.insuranceAccount && !(v.insuranceAccount || "").includes(f.insuranceAccount)) return false;
-      if (f.subaccount && !(v.subaccount || "").includes(f.subaccount)) return false;
+      if (f.insuranceAccount) {
+        const search = f.insuranceAccount.trim().toLowerCase();
+      if (!(v.insuranceAccount || "").toLowerCase().includes(search)) return false;
+      }
+      if (f.subaccount) {
+        const search = f.subaccount.trim().toLowerCase();
+      if (!(v.subaccount || "").toLowerCase().includes(search)) return false;
+      }
       if (f.pname && !(v.patient || "").toLowerCase().includes(f.pname.trim().toLowerCase())) return false;
       if (f.pphone && !(v.phone || "").includes(f.pphone)) return false;
 
