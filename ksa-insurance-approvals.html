@@ -2217,32 +2217,32 @@ const hasFinalStatus = (currentStatus === "Approved" || currentStatus === "Rejec
 // Count services that have a final status (based on current service status, not log)
 if(hasFinalStatus) finalCount++;
 
-// Get service createdon as fallback for Posted
+// Get service createdon as fallback for Posted (if no Posted log exists)
 const serviceCreatedOn = msFrom(s[CFG.fields.service.createdon]);
 
 const l = minMap.get(sid) || { posted:null, sent:null, approved:null, rejected:null };
 
-// Use Posted from log, or fall back to service createdon
+// START TIME: Use Posted from log, or fall back to service createdon
 const startMs = (l.posted !== null) ? l.posted : serviceCreatedOn;
 
-// For timing, use log data if available
+// END TIME: Use Approved or Rejected timestamp from log
 const endMs = (l.approved !== null) ? l.approved : l.rejected;
 
-// Only calculate timing if we have log data for this service
-if(l.posted !== null || l.sent !== null || l.approved !== null || l.rejected !== null){
-// Posted → Sent: use startMs (posted or createdon) to sent
+// Posted → Sent: Calculate if we have start time AND sent time
+// (start time can be from Posted log OR service createdon)
 if(startMs !== null && l.sent !== null){ 
 const ms = l.sent - startMs; 
 if(ms >= 0){ sumP2S += ms; cntP2S++; } 
 }
 
-// Sent → Final: sent to approved/rejected
+// Sent → Final: sent to approved/rejected (requires both sent and final status)
 if(l.sent !== null && endMs !== null){ 
 const ms = endMs - l.sent; 
 if(ms >= 0){ sumS2F += ms; cntS2F++; } 
 }
 
-// Total Journey: startMs (posted or createdon) to approved/rejected
+// Total Journey (Full Journey): startMs to approved/rejected
+// (start time can be from Posted log OR service createdon)
 if(startMs !== null && endMs !== null){
 const tot = endMs - startMs;
 if(tot >= 0){
@@ -2252,7 +2252,6 @@ if(b) buckets.set(b,(buckets.get(b)||0)+1);
 addDim(dimBU, s[CFG.fields.service.bu], tot);
 addDim(dimSpec, s["v."+CFG.fields.visit.spec], tot);
 addDim(dimCat, s[CFG.fields.service.cat], tot);
-}
 }
 }
 }
