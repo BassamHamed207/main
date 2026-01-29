@@ -1028,7 +1028,7 @@ dt: "opd_timeofstatus",
 agent: "opd_agent"
 },
 comm: {
-serviceLookup: "opd_ksaservices",       // ← this is correct as you confirmed
+serviceLookup: "opdksa_ksaservices",     
       categoryLookup: "dm_validationcomment",
       comment: "dm_comment"
 }
@@ -1220,19 +1220,19 @@ return j.EntitySetName;
 
 
 Xrm.Utility.getEntityMetadata("dm_depcommunication").then(md => {
-  console.log("All lookup fields in dm_depcommunication that point to opd_ksaservices:");
+  console.log("All lookup fields in dm_depcommunication that point to opdksa_ksaservices:");
   Object.values(md.Attributes).forEach(attr => {
     if (attr.AttributeType === "Lookup" && 
         attr.Targets && 
-        attr.Targets.includes("opd_ksaservices")) {
+        attr.Targets.includes("opdksa_ksaservices")) {
       console.log("→ Real lookup field name: " + attr.LogicalName);
       console.log("   Display name: " + (attr.DisplayName?.UserLocalizedLabel?.Label || "No label"));
       console.log("   Schema name: " + attr.SchemaName);
       console.log("---");
     }
   });
-  if (!Object.values(md.Attributes).some(a => a.AttributeType === "Lookup" && a.Targets?.includes("opd_ksaservices"))) {
-    console.log("No lookup found pointing to opd_ksaservices! Check entity relationships.");
+  if (!Object.values(md.Attributes).some(a => a.AttributeType === "Lookup" && a.Targets?.includes("opdksa_ksaservices"))) {
+    console.log("No lookup found pointing to opdksa_ksaservices! Check entity relationships.");
   }
 }).catch(err => {
   console.error("Error fetching metadata:", err);
@@ -2553,7 +2553,7 @@ const sid = cleanGuid(commServiceId);
 const catId = cleanGuid(commCat.id);
 const payload = {};
 payload["dm_comment"] = c;
-payload["opd_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
+payload["opdksa_KSAServices@odata.bind"] = "/" + svcSet + "(" + sid + ")";
 payload["dm_CommentCategory@odata.bind"] = "/" + catSet + "(" + catId + ")";
 await Xrm.WebApi.createRecord(CFG.comm, payload);
 showToast("Communication created.");
