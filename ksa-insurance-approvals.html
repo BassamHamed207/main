@@ -999,8 +999,7 @@ approval: "opd_approvalstatus",
 bu: "opd_businessunit",
 cat: "opd_productclassification",
 svc: "opd_servicename",
-visitFk: "opd_ksavisit",           // ← Changed: Use LOOKUP field (like leakage pattern)
-visitExtText: "opd_externalvisitid", // ← Keep for reference if needed
+visitFk: "opd_externalvisitid",
 patientFk: "opd_patient"
 },
 visit: {
@@ -1322,7 +1321,7 @@ function getLimitedFilters() {
 
   if (!__rollingToastShown) {
     __rollingToastShown = true;
-    showToast("Visits & Services: today. Overview & SLA: full date range (chunked).");
+    showToast("Visits & Services: today. Overview & SLA: full range (chunked).");
   }
 
   return f;
@@ -1717,7 +1716,7 @@ function setDefaultDates() {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // Set both inputs to today by default (1 day range for Visits/Services)
+  // Set both inputs to today
   dateFrom.value = todayStr;
   dateTo.value = todayStr;
 }
@@ -1890,10 +1889,10 @@ function renderVisitsTable() {
 async function loadDimensions(Xrm){
 const f = getLimitedFilters();
 const dims = await Promise.all([
-retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"bu"), f, CFG.chunkDays),
-retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"cat"), f, CFG.chunkDays),
-retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"spec"), f, CFG.chunkDays),
-retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"phys"), f, CFG.chunkDays)
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"spec")),
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"phys"))
 ]);
 const buVals = distinctOptions(dims[0].map(r=>r["v"]).filter(Boolean));
 const catVals = distinctOptions(dims[1].map(r=>r["v"]).filter(Boolean));
@@ -1960,7 +1959,7 @@ overviewLoaded = true;
 
 async function loadServiceStatusAgg(Xrm){
 const f = getLimitedFilters();
-const rows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxServicesStatusAgg(chunkF), f, CFG.chunkDays);
+const rows = await retrieveAllFetch(Xrm, CFG.service, fxServicesStatusAgg(f));
 const map = new Map();
 rows.forEach(r=>{
 const raw = r["st"];
@@ -1980,8 +1979,8 @@ try{ await loadServicesPage(Xrm2); } finally { setBusy(false,"Ready"); }
 }
 async function loadServicesPage(Xrm){
 const f = getLimitedFilters();
-const cntRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxServicesCount(chunkF, svcBubble), f, CFG.chunkDays);
-svcTotal = cntRows.reduce((sum, r) => sum + Number(r["cnt"]||0), 0);
+const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxServicesCount(f, svcBubble));
+svcTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
 const fx = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir, svcBubble);
 const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
 svcRows = rows.map(s=>{
@@ -2152,8 +2151,7 @@ const fx = fxLogRecords(chunkF, page);
 const rows = await retrieveAllFetch(Xrm, CFG.log, fx);
 // Process each log record to find MIN timestamp per service+status
 for(const r of rows){
-// Lookup fields return as _fieldname_value in Web API
-const sidRaw = r["_" + lg.serviceLookup + "_value"] || r[lg.serviceLookup];
+const sidRaw = r[lg.serviceLookup];
 if(!sidRaw) continue;
 const sid = normalizeGuid(sidRaw);
 const statusRaw = r[lg.status];
@@ -2622,51 +2620,6 @@ commBack.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeComm(); })
 
 window.addEventListener("load", async ()=>{
 setDefaultDates();
-
-// DIAGNOSTIC: Test basic queries and find the correct lookup field
-const Xrm = getXrm();
-if(Xrm){
-  try{
-    // Test 1: Query services with ALL fields to find the visit lookup
-    const svcTest = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?$top=1");
-    console.log("=== DIAGNOSTIC: Service Record (all fields) ===");
-    if(svcTest.entities?.length) {
-      const svc = svcTest.entities[0];
-      console.log("Full service record:", svc);
-      
-      // Find all lookup fields (they have _value suffix)
-      console.log("=== LOOKUP FIELDS FOUND ===");
-      Object.keys(svc).filter(k => k.startsWith("_") && k.endsWith("_value")).forEach(k => {
-        const fieldName = k.replace(/^_/, "").replace(/_value$/, "");
-        console.log("  Lookup:", fieldName, "=", svc[k]);
-      });
-      
-      // Check common visit lookup field names
-      const possibleVisitFields = ["opd_ksavisit", "opd_ksavisits", "opd_visit", "opd_externalvisitid"];
-      console.log("=== CHECKING POSSIBLE VISIT LOOKUP FIELDS ===");
-      possibleVisitFields.forEach(field => {
-        const lookupVal = svc["_" + field + "_value"];
-        const textVal = svc[field];
-        console.log("  " + field + ":", "lookup=" + lookupVal, "text=" + textVal);
-      });
-    }
-    
-    // Test 2: Query visits 
-    const visTest = await Xrm.WebApi.retrieveMultipleRecords(CFG.visit, "?$top=1");
-    console.log("=== DIAGNOSTIC: Visit Record (all fields) ===");
-    if(visTest.entities?.length) {
-      console.log("Full visit record:", visTest.entities[0]);
-      console.log("Visit ID:", visTest.entities[0][CFG.fields.visit.id]);
-      console.log("Visit ext:", visTest.entities[0][CFG.fields.visit.ext]);
-    }
-    
-    showToast("Check browser console (F12) for diagnostic info - look for LOOKUP FIELDS FOUND");
-  }catch(e){
-    console.error("Diagnostic error:", e);
-    showToast("Diagnostic error: " + e.message);
-  }
-}
-
 await applyAll();
 });
 
