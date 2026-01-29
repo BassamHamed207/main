@@ -1622,45 +1622,66 @@ return out;
 // Simple chunked retrieval - matches leakage pattern with day-based chunks
 async function retrieveAggChunked(Xrm, entity, fetchFactory, baseFilters, chunkDays){
 const f = {...baseFilters};
-console.log("=== retrieveAggChunked: input filters ===", f);
 
 if(!f.df || !f.end){
 const now = new Date();
 f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
-console.log("=== retrieveAggChunked: defaulted dates ===", f.df, f.end);
 }
 
-// For small date ranges (7 days or less), don't chunk - just run the query directly
-const daysDiff = Math.ceil((f.end.getTime() - f.df.getTime()) / (24 * 60 * 60 * 1000));
-console.log("=== retrieveAggChunked: daysDiff ===", daysDiff);
-
-if(daysDiff <= 7){
-try{
-const fetchXml = fetchFactory(f);
-console.log("=== retrieveAggChunked: executing query ===", fetchXml);
-const result = await retrieveAllFetch(Xrm, entity, fetchXml);
-console.log("=== retrieveAggChunked: result count ===", result.length);
-return result;
-}catch(err){
-console.warn("Query failed, will try chunking:", err.message || err);
-}
-}
-
-// Generate day-based chunks (like leakage)
-const chunks = getDateChunks(f.df, f.end, chunkDays);
 const allRows = [];
 
-for(const chunk of chunks){
-const chunkFilters = {...f, df: chunk.start, end: chunk.end};
+// Helper to check if error is 50k aggregate limit
+function is50kError(err){
+const msg = (err && (err.message || err.toString())) || "";
+const lower = msg.toLowerCase();
+return msg.includes("AggregateQueryRecordLimit") || 
+       msg.includes("8004E023") || 
+       msg.includes("-2147164125") || 
+       msg.includes("50000") ||
+       lower.includes("exceeded") ||
+       lower.includes("maximum record") ||
+       lower.includes("aggregate");
+}
+
+// Recursive function to fetch with automatic splitting on 50k error
+async function fetchChunkRecursive(chunkStart, chunkEnd, depth){
+if(depth > 10) {
+console.warn("Max recursion depth reached, skipping chunk:", chunkStart, chunkEnd);
+return;
+}
+
+const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
-console.warn("Chunk query failed:", chunk.start, "-", chunk.end, err.message || err);
+if(is50kError(err)){
+// Split chunk in half and retry
+const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
+const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
+
+if(timeDiff > 3600000){ // More than 1 hour, keep splitting
+console.log("50k limit hit, splitting chunk:", chunkStart, "-", chunkEnd);
+await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
+await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
+} else {
+console.warn("Chunk too small to split, skipping:", chunkStart, chunkEnd);
+}
+} else {
+console.warn("Chunk query failed (non-50k error):", err.message || err);
 }
 }
+}
+
+// Generate initial day-based chunks
+const chunks = getDateChunks(f.df, f.end, chunkDays);
+
+for(const chunk of chunks){
+await fetchChunkRecursive(chunk.start, chunk.end, 0);
+}
+
 return allRows;
 }
 
