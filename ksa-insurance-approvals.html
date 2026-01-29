@@ -1640,9 +1640,9 @@ f.df.setHours(0,0,0,0);
 }
 const allRows = [];
 const MS_HOUR = 3600000;
-const MS_CHUNK = MS_HOUR * 12; // 12-hour chunks
+const MS_CHUNK = MS_HOUR * 2; // 2-hour chunks for high-density data
 
-// Generate time-based chunks (6 hours each)
+// Generate time-based chunks
 function getTimeChunks(startDate, endDate){
 const chunks = [];
 let cur = new Date(startDate.getTime());
@@ -1657,25 +1657,42 @@ return chunks;
 }
 
 async function fetchChunkRecursive(chunkStart, chunkEnd, depth){
-if(depth > 8) return; // Max 8 levels of recursion
+if(depth > 12) return; // Max 12 levels of recursion for finer granularity
 const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
 const msg = (err && (err.message || err.toString())) || "";
-const isAggLimit = msg.includes("AggregateQueryRecordLimit") || msg.includes("8004E023") || msg.includes("-2147164125") || msg.includes("50000") || msg.includes("exceeded");
+const errLower = msg.toLowerCase();
+const isAggLimit = msg.includes("AggregateQueryRecordLimit") || 
+                   msg.includes("8004E023") || 
+                   msg.includes("-2147164125") || 
+                   msg.includes("50000") || 
+                   errLower.includes("exceeded") ||
+                   errLower.includes("maximum record") ||
+                   errLower.includes("reduce the number");
 if(isAggLimit){
 // Split this chunk in half and retry
 const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
 const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
-if(timeDiff > MS_HOUR / 2){ // More than 30 minutes, keep splitting
+if(timeDiff > 60000){ // More than 1 minute, keep splitting
 await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
 await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
+} else {
+console.warn("SLA chunk still failing at 1-minute granularity, skipping:", chunkStart, chunkEnd);
 }
-// If less than 30 minutes apart and still failing, skip this chunk
+} else {
+// For other errors, try splitting if chunk is large enough
+const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
+if(timeDiff > MS_HOUR && depth < 6){
+const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
+await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
+await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
+} else {
+console.warn("SLA chunk error:", err.message || err);
 }
-// For non-aggregate errors, silently skip this chunk
+}
 }
 }
 
@@ -2088,10 +2105,14 @@ ${whereSvc}
 </fetch>`).replace(/\s+/g," ").trim();
 }
 const logRows = await retrieveAggChunked(Xrm, CFG.log, fxLogMinAll_inline, f, CFG.chunkDays);
+// Normalize GUID for consistent matching
+const normalizeGuid = (g) => g ? String(g).replace(/[{}]/g,"").toLowerCase() : "";
+
 const minMap = new Map();
 for(const r of logRows){
-const sid = r["sid"];
-if(!sid) continue;
+const sidRaw = r["sid"];
+if(!sidRaw) continue;
+const sid = normalizeGuid(sidRaw);
 const astRaw = r["ast"];
 const dtRaw = r["firstdt"];
 const ns = normalizeStatus(astRaw);
@@ -2142,8 +2163,10 @@ const o=map.get(k); o.sum+=ms; o.cnt+=1;
 };
 const seenIds = new Set();
 for(const s of allServiceRows){
-const sid = s[CFG.fields.service.id];
-if(!sid || seenIds.has(sid)) continue;
+const sidRaw = s[CFG.fields.service.id];
+if(!sidRaw) continue;
+const sid = normalizeGuid(sidRaw);
+if(seenIds.has(sid)) continue;
 seenIds.add(sid);
 const l = minMap.get(sid);
 if(!l) continue;
