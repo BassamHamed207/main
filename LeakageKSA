@@ -641,19 +641,18 @@
           </div>
           <div class="f">
             <label>Category</label>
-            <select id="cat"><option value="">All</option></select>
-          </div>
+         <select id="cat" multiple><option value="">All</option></select>
           <div class="f">
             <label>Specialty</label>
-            <select id="spec"><option value="">All</option></select>
+          <select id="spec" multiple><option value="">All</option></select>  
           </div>
           <div class="f">
             <label>Physician</label>
-            <select id="phys"><option value="">All</option></select>
+          <select id="phys" multiple><option value="">All</option></select>
           </div>
           <div class="f">
             <label>Status</label>
-            <select id="st"><option value="">All</option></select>
+            <select id="st" multiple><option value="">All</option></select>
           </div>
           <div class="f">
             <label>Visit ID (contains)</label>
@@ -840,16 +839,16 @@
           </div>
           <div class="bulkbar" style="margin-top:10px;">
             <div class="bulkleft" style="min-width:240px;">
-              <select class="mini" id="chartLeakageReason">
+              <select class="mini" id="chartLeakageReason" multiple>
                 <option value="">All leakage reasons</option>
               </select>
             </div>
             <div class="bulkright">
-              <select class="mini" id="chartBU"><option value="">All BUs</option></select>
-              <select class="mini" id="chartSpec"><option value="">All specialties</option></select>
-              <select class="mini" id="chartPhys"><option value="">All physicians</option></select>
-              <select class="mini" id="chartCat"><option value="">All categories</option></select>
-              <select class="mini" id="chartVisitClass"><option value="">All visit classes</option></select>
+              <select class="mini" id="chartBU" multiple><option value="">All BUs</option></select>
+              <select class="mini" id="chartSpec" multiple><option value="">All specialties</option></select>
+              <select class="mini" id="chartPhys" multiple><option value="">All physicians</option></select>
+              <select class="mini" id="chartCat" multiple><option value="">All categories</option></select>
+              <select class="mini" id="chartVisitClass" multiple><option value="">All visit classes</option></select>
               <input class="mini" id="chartFrom" type="date" />
               <input class="mini" id="chartTo" type="date" />
               <button class="btn primary" id="btnChart" type="button">Load Chart</button>
@@ -1156,6 +1155,13 @@
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
       .replace(/"/g,"&quot;").replace(/'/g,"&apos;");
   }
+  function fxMultiEq(attr, values){
+    if(!values || values.length === 0) return "";
+    if(values.length === 1){
+      return `<condition attribute="${attr}" operator="eq" value="${xmlEsc(values[0])}" />`;
+    }
+    return `<filter type="or">${values.map(v=>`<condition attribute="${attr}" operator="eq" value="${xmlEsc(v)}" />`).join("")}</filter>`;
+  }
   function normText(v){
     return (v ?? "").toString().trim();
   }
@@ -1192,6 +1198,12 @@
     if(completed > 0 && (pending > 0 || inprog > 0)) return "Partially Completed";
     return "Pending";
   }
+  function getSelectValues(selectEl){
+    if(!selectEl) return [];
+    return Array.from(selectEl.selectedOptions || [])
+      .map(opt => (opt.value || "").trim())
+      .filter(Boolean);
+  }
   function getFilters(){
     const df = parseDateOnly(dateFrom.value);
     const dt = parseDateOnly(dateTo.value);
@@ -1200,17 +1212,17 @@
       df,
       dt,
       end,
-      bu: (bu.value || "").trim(),
-      cat: (cat.value || "").trim(),
-      spec: (spec.value || "").trim(),
-      phys: (phys.value || "").trim(),
-      st: (st.value || "").trim(),
+     bu: getSelectValues(bu),
+      cat: getSelectValues(cat),
+      spec: getSelectValues(spec),
+      phys: getSelectValues(phys),
+      st: getSelectValues(st),
       visitId: (visitId.value || "").trim(),
       pname: (pname.value || "").trim(),
       pphone: (pphone.value || "").trim(),
       insuranceAccount: (insuranceAccount.value || "").trim(),
       subaccount: (subaccount.value || "").trim(),
-      visitClass: (visitClass.value || "").trim()
+      visitClass: getSelectValues(visitClass)
     };
   }
   function getChartFilters(){
@@ -1221,18 +1233,18 @@
       df,
       dt,
       end,
-      bu: (chartBU.value || "").trim(),
-      cat: (chartCat.value || "").trim(),
-      spec: (chartSpec.value || "").trim(),
-      phys: (chartPhys.value || "").trim(),
-      visitClass: (chartVisitClass.value || "").trim(),
+      bu: getSelectValues(chartBU),
+      cat: getSelectValues(chartCat),
+      spec: getSelectValues(chartSpec),
+      phys: getSelectValues(chartPhys),
+      visitClass: getSelectValues(chartVisitClass),
       st: "",
       visitId: "",
       pname: "",
       pphone: "",
       insuranceAccount: "",
       subaccount: "",
-      leakageReason: (chartLeakageReason.value || "").trim()
+      leakageReason: getSelectValues(chartLeakageReason)
     };
   }
   // Generate date chunks to avoid 50k limit
@@ -1263,9 +1275,9 @@
     let out = "";
     out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
     out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
-    if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
-    if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
-    if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
+    if(svc.bu) out += fxMultiEq(svc.bu, f.bu);
+    out += fxMultiEq(svc.cat, f.cat);
+    out += fxMultiEq(svc.status, f.st);
     return out;
   }
   function fxServiceBaseFilters(f){
@@ -1273,20 +1285,20 @@
     let out = "";
     if(f.df)  out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />`;
     if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />`;
-    if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
-    if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
-    if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
+    if(svc.bu) out += fxMultiEq(svc.bu, f.bu);
+    out += fxMultiEq(svc.cat, f.cat);
+    out += fxMultiEq(svc.status, f.st);
     return out;
   }
   function fxVisitLinkFilters(f){
     const v = CFG.fields.visit;
     let out = "";
-    if(f.spec)   out += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
-    if(f.phys)   out += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
+    out += fxMultiEq(v.spec, f.spec);
+    out += fxMultiEq(v.doctor, f.phys);
     if(f.visitId)out += `<condition attribute="${v.ext}" operator="like" value="%${xmlEsc(f.visitId)}%" />`;
     if(f.insuranceAccount) out += `<condition attribute="${v.insuranceAccount}" operator="like" value="%${xmlEsc(f.insuranceAccount)}%" />`;
     if(f.subaccount) out += `<condition attribute="${v.subaccount}" operator="like" value="%${xmlEsc(f.subaccount)}%" />`;
-    if(f.visitClass) out += `<condition attribute="${v.classification}" operator="eq" value="${xmlEsc(f.visitClass)}" />`;
+    out += fxMultiEq(v.classification, f.visitClass);
     if(!out) return "";
     return `<filter type="and">${out}</filter>`;
   }
@@ -1317,20 +1329,36 @@
   }
   function fillSelect(selectEl, values){
     if(!selectEl) return;
-    const cur = selectEl.value;
+    const selected = new Set(getSelectValues(selectEl));
     selectEl.innerHTML =
       `<option value="">All</option>` +
       values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
-    if(cur && values.includes(cur)) selectEl.value = cur;
+    Array.from(selectEl.options).forEach(opt=>{
+      if(selected.has(opt.value)) opt.selected = true;
+    });
+    if(selected.size===0){
+      const emptyOpt = selectEl.querySelector('option[value=""]');
+      if(emptyOpt) emptyOpt.selected = true;
+    }
   }
   function fillOptions(selectEl, options, { includeBlank=true, blankText="Select..." } = {}){
     if(!selectEl) return;
-    const cur = selectEl.value;
+    const selected = new Set(getSelectValues(selectEl));
     let html = "";
     if(includeBlank) html += `<option value="">${escapeHtml(blankText)}</option>`;
     html += options.map(o => `<option value="${escapeHtml(String(o.value))}">${escapeHtml(o.label)}</option>`).join("");
     selectEl.innerHTML = html;
-    if(cur && options.some(o => String(o.value) === String(cur))) selectEl.value = cur;
+    Array.from(selectEl.options).forEach(opt=>{
+      if(selected.has(opt.value)) opt.selected = true;
+    });
+    if(selected.size===0){
+      const emptyOpt = selectEl.querySelector('option[value=""]');
+      if(emptyOpt) emptyOpt.selected = true;
+    }
+  }
+  function resetSelect(selectEl){
+    if(!selectEl) return;
+    Array.from(selectEl.options).forEach(opt=>{ opt.selected = opt.value === ""; });
   }
   function distinctOptions(values){
     return Array.from(
@@ -1355,6 +1383,7 @@
     viewServices.classList.toggle("hidden", !isV);
     viewCharts.classList.toggle("hidden", !isC);
   }
+  tabVisits.addEventListener("click", ()=>setTab("visits"));
   tabVisits.addEventListener("click", ()=>setTab("visits"));
   tabOverview.addEventListener("click", ()=>setTab("overview"));
   tabServices.addEventListener("click", ()=>setTab("services"));
@@ -1591,14 +1620,14 @@
     let chartSvcFilters = "";
     chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
     chartSvcFilters += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
-    if(svc.bu && f.bu) chartSvcFilters += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
-    if(f.cat) chartSvcFilters += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
-    if(f.leakageReason) chartSvcFilters += `<condition attribute="${svc.leakageReason}" operator="eq" value="${xmlEsc(f.leakageReason)}" />`;
+      if(svc.bu) chartSvcFilters += fxMultiEq(svc.bu, f.bu);
+    chartSvcFilters += fxMultiEq(svc.cat, f.cat);
+    chartSvcFilters += fxMultiEq(svc.leakageReason, f.leakageReason);
     const whereSvc = `<filter type="and">${chartSvcFilters}</filter>`;
     let chartVFilt = "";
-    if(f.spec) chartVFilt += `<condition attribute="${v.spec}" operator="eq" value="${xmlEsc(f.spec)}" />`;
-    if(f.phys) chartVFilt += `<condition attribute="${v.doctor}" operator="eq" value="${xmlEsc(f.phys)}" />`;
-    if(f.visitClass) chartVFilt += `<condition attribute="${v.classification}" operator="eq" value="${xmlEsc(f.visitClass)}" />`;
+    chartVFilt += fxMultiEq(v.spec, f.spec);
+    chartVFilt += fxMultiEq(v.doctor, f.phys);
+    chartVFilt += fxMultiEq(v.classification, f.visitClass);
     const vFilt = chartVFilt ? `<filter type="and">${chartVFilt}</filter>` : "";
     return `
       <fetch aggregate="true">
@@ -2541,19 +2570,19 @@
     pphone.value = "";
     insuranceAccount.value = "";
     subaccount.value = "";
-    visitClass.value = "";
-    bu.value = "";
-    cat.value = "";
-    spec.value = "";
-    phys.value = "";
-    st.value = "";
+     resetSelect(visitClass);
+    resetSelect(bu);
+    resetSelect(cat);
+    resetSelect(spec);
+    resetSelect(phys);
+    resetSelect(st);
     const chartDefaultFrom = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-    chartLeakageReason.value = "";
-    chartBU.value = "";
-    chartSpec.value = "";
-    chartPhys.value = "";
-    chartCat.value = "";
-    chartVisitClass.value = "";
+    resetSelect(chartLeakageReason);
+    resetSelect(chartBU);
+    resetSelect(chartSpec);
+    resetSelect(chartPhys);
+    resetSelect(chartCat);
+    resetSelect(chartVisitClass);
     chartFrom.value = toIsoDate(chartDefaultFrom);
     chartTo.value = toIsoDate(now);
     svcSelected.clear();
