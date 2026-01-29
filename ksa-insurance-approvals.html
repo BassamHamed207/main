@@ -2146,6 +2146,7 @@ ${whereSvc}
 }
 
 // Fetch logs in chunks with paging
+let totalLogRows = 0;
 for(const chunk of chunks){
 const chunkF = {...f, df: chunk.start, end: chunk.end};
 let page = 1;
@@ -2154,9 +2155,14 @@ while(hasMore){
 try{
 const fx = fxLogRecords(chunkF, page);
 const rows = await retrieveAllFetch(Xrm, CFG.log, fx);
+totalLogRows += rows.length;
+if(page === 1 && rows.length > 0) {
+console.log("=== SLA: Sample log record ===", rows[0]);
+}
 // Process each log record to find MIN timestamp per service+status
 for(const r of rows){
-const sidRaw = r[lg.serviceLookup];
+// Lookup fields return GUID as _fieldname_value in Web API
+const sidRaw = r["_" + lg.serviceLookup + "_value"] || r[lg.serviceLookup];
 if(!sidRaw) continue;
 const sid = normalizeGuid(sidRaw);
 const statusRaw = r[lg.status];
@@ -2182,7 +2188,8 @@ hasMore = false;
 }
 console.log("=== SLA DEBUG ===");
 console.log("Total services fetched:", allServiceRows.length);
-console.log("Total log entries in minMap:", minMap.size);
+console.log("Total log rows fetched:", totalLogRows);
+console.log("Unique services in minMap:", minMap.size);
 console.log("Sample minMap entries:", Array.from(minMap.entries()).slice(0, 5));
 
 if(!allServiceRows.length){
