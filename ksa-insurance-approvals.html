@@ -1688,12 +1688,9 @@ function setDefaultDates() {
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // Set Date To to today
+  // Set both Date From and Date To to today
+  dateFrom.value = todayStr;
   dateTo.value = todayStr;
-
-  // Set Date From to 30 days ago (to show recent data by default)
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  dateFrom.value = thirtyDaysAgo.toISOString().slice(0, 10);
 }
 
 function resetFilters(){
@@ -1954,10 +1951,22 @@ try{ await loadServicesPage(Xrm2); } finally { setBusy(false,"Ready"); }
 }
 async function loadServicesPage(Xrm){
 const f = getLimitedFilters();
-const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxServicesCount(f, svcBubble));
+console.log("=== loadServicesPage: filters ===", f);
+
+const countFx = fxServicesCount(f, svcBubble);
+console.log("=== loadServicesPage: count FetchXML ===", countFx);
+
+const cntRows = await retrieveAllFetch(Xrm, CFG.service, countFx);
+console.log("=== loadServicesPage: count result ===", cntRows);
+
 svcTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
+console.log("=== loadServicesPage: svcTotal ===", svcTotal);
+
 const fx = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir, svcBubble);
+console.log("=== loadServicesPage: page FetchXML ===", fx);
+
 const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
+console.log("=== loadServicesPage: rows ===", rows.length, rows);
 svcRows = rows.map(s=>{
 const dt = s[CFG.fields.service.createdon] ? new Date(s[CFG.fields.service.createdon]) : null;
 const raw = s[CFG.fields.service.approval];
