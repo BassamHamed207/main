@@ -1109,7 +1109,7 @@
         comm: "dm_depcommunication",
         dept: "cr603_chklst_departments",
         region: "crd04_regions",
-        commCat: "dm_commentcategory",
+        commCat: "dm_validationcomment",
         status: { notRequired: 884670000, requested: 884670001, replied: 884670002, approved: 884670003, rejected: 884670004 },
         fields: {
           service: {
@@ -1150,7 +1150,7 @@
             serviceLookup: "opd_service",
             departmentLookup: "dm_department_1",
             regionLookup: "dm_region",
-            categoryLookup: "dm_commentcategory",
+            categoryLookup: "dm_validationcomment",
             comment: "dm_comment"
           }
         },
