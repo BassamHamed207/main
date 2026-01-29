@@ -1276,7 +1276,7 @@
     if(!k) return "Pending";
     if(k === "complete" || k === "completed") return "Completed";
     if(k === "cancelled" || k === "canceled" || k === "discontinued" || k === "no show" || k === "noshow") return "Leaked";
-    if(k === "in progress") return "In Progress";
+    if(k === "in progress" || k === "inprogress") return "In Progress";
     if(k === "ordered") return "Pending";
     return "Pending";
   }
