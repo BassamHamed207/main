@@ -2162,20 +2162,44 @@ if(!map.has(k)) map.set(k,{sum:0,cnt:0});
 const o=map.get(k); o.sum+=ms; o.cnt+=1;
 };
 const seenIds = new Set();
+let finalCount = 0; // Count of services with Approved or Rejected
+
 for(const s of allServiceRows){
 const sidRaw = s[CFG.fields.service.id];
 if(!sidRaw) continue;
 const sid = normalizeGuid(sidRaw);
 if(seenIds.has(sid)) continue;
 seenIds.add(sid);
-const l = minMap.get(sid);
-if(!l) continue;
-const endMs = (l.approved!==null) ? l.approved : l.rejected;
-if(l.posted!==null && l.sent!==null){ const ms = l.sent - l.posted; if(ms>=0){ sumP2S += ms; cntP2S++; } }
-if(l.sent!==null && endMs!==null){ const ms = endMs - l.sent; if(ms>=0){ sumS2F += ms; cntS2F++; } }
-if(l.posted!==null && endMs!==null){
-const tot = endMs - l.posted;
-if(tot>=0){
+
+// Get service createdon as fallback for Posted
+const serviceCreatedOn = msFrom(s[CFG.fields.service.createdon]);
+
+const l = minMap.get(sid) || { posted:null, sent:null, approved:null, rejected:null };
+
+// Use Posted from log, or fall back to service createdon
+const startMs = (l.posted !== null) ? l.posted : serviceCreatedOn;
+
+const endMs = (l.approved !== null) ? l.approved : l.rejected;
+
+// Count services that have a final status (Approved or Rejected)
+if(endMs !== null) finalCount++;
+
+// Posted → Sent: use startMs (posted or createdon) to sent
+if(startMs !== null && l.sent !== null){ 
+const ms = l.sent - startMs; 
+if(ms >= 0){ sumP2S += ms; cntP2S++; } 
+}
+
+// Sent → Final: sent to approved/rejected
+if(l.sent !== null && endMs !== null){ 
+const ms = endMs - l.sent; 
+if(ms >= 0){ sumS2F += ms; cntS2F++; } 
+}
+
+// Total Journey: startMs (posted or createdon) to approved/rejected
+if(startMs !== null && endMs !== null){
+const tot = endMs - startMs;
+if(tot >= 0){
 sumTot += tot; cntTot++;
 const b = bucketize(tot);
 if(b) buckets.set(b,(buckets.get(b)||0)+1);
@@ -2188,7 +2212,7 @@ addDim(dimCat, s[CFG.fields.service.cat], tot);
 slaP2S.textContent = cntP2S ? dur(sumP2S/cntP2S) : "—";
 slaS2F.textContent = cntS2F ? dur(sumS2F/cntS2F) : "—";
 slaTotal.textContent = cntTot ? dur(sumTot/cntTot) : "—";
-slaCount.textContent = fmtInt(cntTot);
+slaCount.textContent = fmtInt(finalCount); // Count of services with Approved/Rejected
 const bucketOrder = ["0–15 min","15–60 min","1–4 hrs","4–24 hrs",">24 hrs"];
 const totalB = Array.from(buckets.values()).reduce((a,b)=>a+b,0);
 tbBuckets.innerHTML = bucketOrder.map(k=>{
