@@ -2583,6 +2583,59 @@ commBack.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeComm(); })
 
 window.addEventListener("load", async ()=>{
 setDefaultDates();
+
+// DEBUG: Log the generated FetchXML to diagnose join issues
+const Xrm = getXrm();
+if(Xrm){
+  const f = getFilters();
+  console.log("=== DEBUG: Filter values ===");
+  console.log("df:", f.df);
+  console.log("end:", f.end);
+  
+  // Test a simple service query without joins
+  try{
+    const simpleQuery = `<fetch top="5"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" /><attribute name="${CFG.fields.service.visitFk}" /></entity></fetch>`;
+    console.log("=== DEBUG: Simple service query (no joins) ===");
+    console.log(simpleQuery);
+    const simpleRes = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(simpleQuery));
+    console.log("Simple query result count:", simpleRes.entities?.length || 0);
+    if(simpleRes.entities?.length){
+      console.log("First service:", simpleRes.entities[0]);
+      console.log("visitFk value:", simpleRes.entities[0][CFG.fields.service.visitFk]);
+    }
+  }catch(e){ console.error("Simple query failed:", e); }
+  
+  // Test visit query
+  try{
+    const visitQuery = `<fetch top="5"><entity name="${CFG.visit}"><attribute name="${CFG.fields.visit.id}" /><attribute name="${CFG.fields.visit.ext}" /></entity></fetch>`;
+    console.log("=== DEBUG: Simple visit query ===");
+    const visitRes = await Xrm.WebApi.retrieveMultipleRecords(CFG.visit, "?fetchXml="+encodeURIComponent(visitQuery));
+    console.log("Visit query result count:", visitRes.entities?.length || 0);
+    if(visitRes.entities?.length){
+      console.log("First visit:", visitRes.entities[0]);
+      console.log("visit.id:", visitRes.entities[0][CFG.fields.visit.id]);
+      console.log("visit.ext:", visitRes.entities[0][CFG.fields.visit.ext]);
+    }
+  }catch(e){ console.error("Visit query failed:", e); }
+  
+  // Test query WITH join
+  try{
+    const joinQuery = `<fetch top="5"><entity name="${CFG.service}"><attribute name="${CFG.fields.service.id}" /><link-entity name="${CFG.visit}" from="${CFG.fields.visit.id}" to="${CFG.fields.service.visitFk}" link-type="inner" alias="v"><attribute name="${CFG.fields.visit.ext}" /></link-entity></entity></fetch>`;
+    console.log("=== DEBUG: Query WITH join ===");
+    console.log(joinQuery);
+    const joinRes = await Xrm.WebApi.retrieveMultipleRecords(CFG.service, "?fetchXml="+encodeURIComponent(joinQuery));
+    console.log("Join query result count:", joinRes.entities?.length || 0);
+    if(joinRes.entities?.length){
+      console.log("First joined result:", joinRes.entities[0]);
+    }else{
+      console.log("JOIN RETURNED ZERO - The join condition is failing!");
+      console.log("This means service.visitFk does NOT match visit.id");
+    }
+  }catch(e){ console.error("Join query failed:", e); }
+  
+  showToast("Check browser console (F12) for diagnostic info");
+}
+
 await applyAll();
 });
 
