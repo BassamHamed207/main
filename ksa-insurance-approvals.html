@@ -1031,7 +1031,7 @@ serviceLookup: "opd_ksaservices",       // ← this is correct as you confirmed
 pageSize: 20,
 dimTop: 12,
 visitsDefaultDays: 1,
-chunkDays: 1
+chunkDays: 7
 };
 
 function normalizeStatus(val){
@@ -1442,7 +1442,7 @@ return (`<fetch page="${page}" count="${count}">
 <attribute name="${svc.svc}" />
 ${whereSvc}
 ${order}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.name}" />
 <attribute name="${v.ext}" />
 <attribute name="${v.doctor}" />
@@ -1483,7 +1483,7 @@ return (`<fetch aggregate="true">
 <entity name="${CFG.service}">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1498,7 +1498,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.approval}" groupby="true" alias="st" />
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1514,7 +1514,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.approval}" groupby="true" alias="st" />
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1530,7 +1530,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.bu}" groupby="true" alias="v" />
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1541,7 +1541,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.cat}" groupby="true" alias="v" />
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1551,7 +1551,7 @@ return (`<fetch aggregate="true">
 <entity name="${CFG.service}">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.spec}" groupby="true" alias="v" />
 ${vFilt}
 </link-entity>
@@ -1563,7 +1563,7 @@ return (`<fetch aggregate="true">
 <entity name="${CFG.service}">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.doctor}" groupby="true" alias="v" />
 ${vFilt}
 </link-entity>
@@ -1583,7 +1583,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.id}" aggregate="count" alias="total" />
 <attribute name="${svc.bu}" groupby="true" alias="bu" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.name}" groupby="true" alias="vname" />
 <attribute name="${v.ext}" groupby="true" alias="vext" />
 <attribute name="${v.doctor}" groupby="true" alias="vdoc" />
@@ -1611,7 +1611,7 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.approval}" groupby="true" alias="st" />
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -1630,6 +1630,7 @@ if(res && res.entities && res.entities.length) out.push(...res.entities);
 return out;
 }
 
+// Simple chunked retrieval - matches leakage pattern with day-based chunks
 async function retrieveAggChunked(Xrm, entity, fetchFactory, baseFilters, chunkDays){
 const f = {...baseFilters};
 if(!f.df || !f.end){
@@ -1638,67 +1639,29 @@ f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 9
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
 }
+
+// For small date ranges (7 days or less), don't chunk - just run the query directly
+const daysDiff = Math.ceil((f.end.getTime() - f.df.getTime()) / (24 * 60 * 60 * 1000));
+if(daysDiff <= 7){
+try{
+return await retrieveAllFetch(Xrm, entity, fetchFactory(f));
+}catch(err){
+console.warn("Query failed, will try chunking:", err.message || err);
+}
+}
+
+// Generate day-based chunks (like leakage)
+const chunks = getDateChunks(f.df, f.end, chunkDays);
 const allRows = [];
-const MS_HOUR = 3600000;
-const MS_CHUNK = MS_HOUR * 2; // 2-hour chunks for high-density data
 
-// Generate time-based chunks
-function getTimeChunks(startDate, endDate){
-const chunks = [];
-let cur = new Date(startDate.getTime());
-const finalEnd = new Date(endDate.getTime());
-while(cur < finalEnd){
-const chunkStart = new Date(cur.getTime());
-const chunkEnd = new Date(Math.min(cur.getTime() + MS_CHUNK - 1, finalEnd.getTime()));
-chunks.push({ start: chunkStart, end: chunkEnd });
-cur = new Date(chunkEnd.getTime() + 1);
-}
-return chunks;
-}
-
-async function fetchChunkRecursive(chunkStart, chunkEnd, depth){
-if(depth > 12) return; // Max 12 levels of recursion for finer granularity
-const chunkFilters = {...f, df: chunkStart, end: chunkEnd};
+for(const chunk of chunks){
+const chunkFilters = {...f, df: chunk.start, end: chunk.end};
 try{
 const rows = await retrieveAllFetch(Xrm, entity, fetchFactory(chunkFilters));
 allRows.push(...rows);
 }catch(err){
-const msg = (err && (err.message || err.toString())) || "";
-const errLower = msg.toLowerCase();
-const isAggLimit = msg.includes("AggregateQueryRecordLimit") || 
-                   msg.includes("8004E023") || 
-                   msg.includes("-2147164125") || 
-                   msg.includes("50000") || 
-                   errLower.includes("exceeded") ||
-                   errLower.includes("maximum record") ||
-                   errLower.includes("reduce the number");
-if(isAggLimit){
-// Split this chunk in half and retry
-const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
-const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
-if(timeDiff > 60000){ // More than 1 minute, keep splitting
-await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
-await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
-} else {
-console.warn("SLA chunk still failing at 1-minute granularity, skipping:", chunkStart, chunkEnd);
+console.warn("Chunk query failed:", chunk.start, "-", chunk.end, err.message || err);
 }
-} else {
-// For other errors, try splitting if chunk is large enough
-const timeDiff = chunkEnd.getTime() - chunkStart.getTime();
-if(timeDiff > MS_HOUR && depth < 6){
-const midTime = new Date((chunkStart.getTime() + chunkEnd.getTime()) / 2);
-await fetchChunkRecursive(chunkStart, new Date(midTime.getTime() - 1), depth + 1);
-await fetchChunkRecursive(midTime, chunkEnd, depth + 1);
-} else {
-console.warn("SLA chunk error:", err.message || err);
-}
-}
-}
-}
-
-const chunks = getTimeChunks(f.df, f.end);
-for(const chunk of chunks){
-await fetchChunkRecursive(chunk.start, chunk.end, 0);
 }
 return allRows;
 }
@@ -2133,7 +2096,7 @@ return (`<fetch page="${pageNum}" count="5000">
 <attribute name="${lg.dt}" />
 <link-entity name="${CFG.service}" from="${svc.id}" to="${lg.serviceLookup}" link-type="inner" alias="s">
 ${whereSvc}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">${vFilt}</link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
 </link-entity>
 </entity>
@@ -2345,7 +2308,7 @@ return (`<fetch page="${page}" count="${count}">
 <attribute name="${svc.svc}" />
 ${where}
 ${order}
-<link-entity name="${CFG.visit}" from="${v.ext}" to="${svc.visitFk}" link-type="inner" alias="v">
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.name}" />
 <attribute name="${v.ext}" />
 <attribute name="${v.doctor}" />
