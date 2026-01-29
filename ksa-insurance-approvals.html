@@ -1889,10 +1889,10 @@ function renderVisitsTable() {
 async function loadDimensions(Xrm){
 const f = getLimitedFilters();
 const dims = await Promise.all([
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"spec")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"phys"))
+retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"bu"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"cat"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"spec"), f, CFG.chunkDays),
+retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxDimAgg(chunkF,"phys"), f, CFG.chunkDays)
 ]);
 const buVals = distinctOptions(dims[0].map(r=>r["v"]).filter(Boolean));
 const catVals = distinctOptions(dims[1].map(r=>r["v"]).filter(Boolean));
@@ -1959,7 +1959,7 @@ overviewLoaded = true;
 
 async function loadServiceStatusAgg(Xrm){
 const f = getLimitedFilters();
-const rows = await retrieveAllFetch(Xrm, CFG.service, fxServicesStatusAgg(f));
+const rows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxServicesStatusAgg(chunkF), f, CFG.chunkDays);
 const map = new Map();
 rows.forEach(r=>{
 const raw = r["st"];
@@ -1979,8 +1979,8 @@ try{ await loadServicesPage(Xrm2); } finally { setBusy(false,"Ready"); }
 }
 async function loadServicesPage(Xrm){
 const f = getLimitedFilters();
-const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxServicesCount(f, svcBubble));
-svcTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
+const cntRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxServicesCount(chunkF, svcBubble), f, CFG.chunkDays);
+svcTotal = cntRows.reduce((sum, r) => sum + Number(r["cnt"]||0), 0);
 const fx = fxServicesPage(f, svcPage, CFG.pageSize, svcSortDir, svcBubble);
 const rows = await retrieveAllFetch(Xrm, CFG.service, fx);
 svcRows = rows.map(s=>{
@@ -2151,7 +2151,8 @@ const fx = fxLogRecords(chunkF, page);
 const rows = await retrieveAllFetch(Xrm, CFG.log, fx);
 // Process each log record to find MIN timestamp per service+status
 for(const r of rows){
-const sidRaw = r[lg.serviceLookup];
+// Lookup fields return as _fieldname_value in Web API
+const sidRaw = r["_" + lg.serviceLookup + "_value"] || r[lg.serviceLookup];
 if(!sidRaw) continue;
 const sid = normalizeGuid(sidRaw);
 const statusRaw = r[lg.status];
