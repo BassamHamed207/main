@@ -696,6 +696,10 @@ body::after{display:none}
 <input type="text" id="subaccount" placeholder="Subaccount..." />
 </div>
 <div class="f">
+<label>Visit Classification</label>
+<select id="visitClass"><option value="">All</option></select>
+</div>
+<div class="f">
 <label style="opacity:0">.</label>
 <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;width:100%">
 <span class="statuspill"><span class="spin hidden" id="spin"></span><span id="statusText">Ready</span></span>
@@ -1009,7 +1013,8 @@ ext: "opd_externalvisitid",
 doctor: "opd_doctorname",
 spec: "opd_specialty",
 insuranceAccount: "opd_contractorcompany",
-subaccount: "opd_contractorclient"
+subaccount: "opd_contractorclient",
+classification: "opd_visitclassification"
 },
 patient: {
 id: "opd_ksapatientsid",
@@ -1088,6 +1093,7 @@ const pname = el("pname");
 const pphone = el("pphone");
 const insuranceAccount = el("insuranceAccount");
 const subaccount = el("subaccount");
+const visitClass = el("visitClass");
 const btnReset = el("btnReset");
 const btnApply = el("btnApply");
 const btnExport = el("btnExport");
@@ -1259,7 +1265,8 @@ function getFilters() {
     pname: (pname.value||"").trim(),
     pphone: (pphone.value||"").trim(),
     insuranceAccount: (insuranceAccount.value||"").trim(),
-    subaccount: (subaccount.value||"").trim()
+    subaccount: (subaccount.value||"").trim(),
+    visitClass: (visitClass.value||"").trim()
   };
 }
 
@@ -1338,7 +1345,8 @@ f.visitId||"",
 f.pname||"",
 f.pphone||"",
 f.insuranceAccount||"",
-f.subaccount||""
+f.subaccount||"",
+f.visitClass||""
 ];
 return s.join("|");
 }
@@ -1393,6 +1401,7 @@ if(f.phys) out += `<condition attribute="${v.doctor}" operator="eq" value="${xml
 if(f.visitId) out += `<condition attribute="${v.ext}" operator="like" value="%${xmlEsc(f.visitId)}%" />`;
 if(f.insuranceAccount) out += `<condition attribute="${v.insuranceAccount}" operator="like" value="%${xmlEsc(f.insuranceAccount)}%" />`;
 if(f.subaccount) out += `<condition attribute="${v.subaccount}" operator="like" value="%${xmlEsc(f.subaccount)}%" />`;
+if(f.visitClass) out += `<condition attribute="${v.classification}" operator="eq" value="${xmlEsc(f.visitClass)}" />`;
 if(!out) return "";
 return `<filter type="and">${out}</filter>`;
 }
@@ -1549,6 +1558,19 @@ return (`<fetch aggregate="true">
 ${whereSvc}
 <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
 <attribute name="${v.spec}" groupby="true" alias="v" />
+${vFilt}
+</link-entity>
+<link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
+</entity>
+</fetch>`).replace(/\s+/g," ").trim();
+}
+if(dim==="visitClass"){
+return (`<fetch aggregate="true">
+<entity name="${CFG.service}">
+<attribute name="${svc.id}" aggregate="count" alias="cnt" />
+${whereSvc}
+<link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
+<attribute name="${v.classification}" groupby="true" alias="v" />
 ${vFilt}
 </link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">${pFilt}</link-entity>
@@ -1726,6 +1748,7 @@ pname.value="";
 pphone.value="";
 insuranceAccount.value="";
 subaccount.value="";
+visitClass.value="";
 svcBubble="ALL";
 visBubble="ALL";
 slaLoaded = false;
@@ -1891,16 +1914,19 @@ const dims = await Promise.all([
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"spec")),
-retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"phys"))
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"phys")),
+retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"visitClass"))
 ]);
 const buVals = distinctOptions(dims[0].map(r=>r["v"]).filter(Boolean));
 const catVals = distinctOptions(dims[1].map(r=>r["v"]).filter(Boolean));
 const specVals = distinctOptions(dims[2].map(r=>r["v"]).filter(Boolean));
 const physVals = distinctOptions(dims[3].map(r=>r["v"]).filter(Boolean));
+const visitClassVals = distinctOptions(dims[4].map(r=> getFormatted(r,"v") || r["v"]).filter(Boolean));
 fillSelect(bu, buVals);
 fillSelect(cat, catVals);
 fillSelect(spec, specVals);
 fillSelect(phys, physVals);
+fillSelect(visitClass, visitClassVals);
 }
 
 async function loadOverviewAgg(Xrm){
