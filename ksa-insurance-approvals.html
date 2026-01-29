@@ -812,9 +812,9 @@ body::after{display:none}
 <div class="s">Posted → Approved/Rejected</div>
 </div>
 <div class="card tile">
-<div class="k"><span class="badge"><span class="bDot info"></span>Count</span> With Final Status</div>
+<div class="k"><span class="badge"><span class="bDot good"></span>Count</span> Approved/Rejected</div>
 <div class="v" id="slaCount">—</div>
-<div class="s">Services with journey data</div>
+<div class="s">Services with final decision</div>
 </div>
 <div class="section">
 <h2>SLA distribution</h2>
@@ -2162,7 +2162,7 @@ if(!map.has(k)) map.set(k,{sum:0,cnt:0});
 const o=map.get(k); o.sum+=ms; o.cnt+=1;
 };
 const seenIds = new Set();
-let finalCount = 0; // Count of services with Approved or Rejected
+let finalCount = 0; // Count of services with Approved or Rejected status
 
 for(const s of allServiceRows){
 const sidRaw = s[CFG.fields.service.id];
@@ -2170,6 +2170,13 @@ if(!sidRaw) continue;
 const sid = normalizeGuid(sidRaw);
 if(seenIds.has(sid)) continue;
 seenIds.add(sid);
+
+// Get service's current status from the approval field
+const currentStatus = normalizeStatus(s[CFG.fields.service.approval]);
+const hasFinalStatus = (currentStatus === "Approved" || currentStatus === "Rejected");
+
+// Count services that have a final status (based on current service status, not log)
+if(hasFinalStatus) finalCount++;
 
 // Get service createdon as fallback for Posted
 const serviceCreatedOn = msFrom(s[CFG.fields.service.createdon]);
@@ -2179,11 +2186,11 @@ const l = minMap.get(sid) || { posted:null, sent:null, approved:null, rejected:n
 // Use Posted from log, or fall back to service createdon
 const startMs = (l.posted !== null) ? l.posted : serviceCreatedOn;
 
+// For timing, use log data if available
 const endMs = (l.approved !== null) ? l.approved : l.rejected;
 
-// Count services that have a final status (Approved or Rejected)
-if(endMs !== null) finalCount++;
-
+// Only calculate timing if we have log data for this service
+if(l.posted !== null || l.sent !== null || l.approved !== null || l.rejected !== null){
 // Posted → Sent: use startMs (posted or createdon) to sent
 if(startMs !== null && l.sent !== null){ 
 const ms = l.sent - startMs; 
@@ -2209,10 +2216,11 @@ addDim(dimCat, s[CFG.fields.service.cat], tot);
 }
 }
 }
+}
 slaP2S.textContent = cntP2S ? dur(sumP2S/cntP2S) : "—";
 slaS2F.textContent = cntS2F ? dur(sumS2F/cntS2F) : "—";
 slaTotal.textContent = cntTot ? dur(sumTot/cntTot) : "—";
-slaCount.textContent = fmtInt(finalCount); // Count of services with Approved/Rejected
+slaCount.textContent = fmtInt(finalCount); // Count based on current service status
 const bucketOrder = ["0–15 min","15–60 min","1–4 hrs","4–24 hrs",">24 hrs"];
 const totalB = Array.from(buckets.values()).reduce((a,b)=>a+b,0);
 tbBuckets.innerHTML = bucketOrder.map(k=>{
