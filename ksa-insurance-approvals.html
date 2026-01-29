@@ -1633,18 +1633,27 @@ return out;
 // Simple chunked retrieval - matches leakage pattern with day-based chunks
 async function retrieveAggChunked(Xrm, entity, fetchFactory, baseFilters, chunkDays){
 const f = {...baseFilters};
+console.log("=== retrieveAggChunked: input filters ===", f);
+
 if(!f.df || !f.end){
 const now = new Date();
 f.end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 f.df = new Date(f.end.getTime() - (30 * 86400000));
 f.df.setHours(0,0,0,0);
+console.log("=== retrieveAggChunked: defaulted dates ===", f.df, f.end);
 }
 
 // For small date ranges (7 days or less), don't chunk - just run the query directly
 const daysDiff = Math.ceil((f.end.getTime() - f.df.getTime()) / (24 * 60 * 60 * 1000));
+console.log("=== retrieveAggChunked: daysDiff ===", daysDiff);
+
 if(daysDiff <= 7){
 try{
-return await retrieveAllFetch(Xrm, entity, fetchFactory(f));
+const fetchXml = fetchFactory(f);
+console.log("=== retrieveAggChunked: executing query ===", fetchXml);
+const result = await retrieveAllFetch(Xrm, entity, fetchXml);
+console.log("=== retrieveAggChunked: result count ===", result.length);
+return result;
 }catch(err){
 console.warn("Query failed, will try chunking:", err.message || err);
 }
@@ -1969,8 +1978,15 @@ renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
 const f = getLimitedFilters();
+console.log("=== loadVisitsAll: filters ===", f);
+
+// Log the actual FetchXML being used
+const testFetch = fxVisitsAggAll(f);
+console.log("=== loadVisitsAll: FetchXML ===", testFetch);
+
 // Use chunked queries to avoid 50k aggregate limit
 const base = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxVisitsAggAll(chunkF), f, CFG.chunkDays);
+console.log("=== loadVisitsAll: base results ===", base.length, base);
 const stRows = await retrieveAggChunked(Xrm, CFG.service, (chunkF) => fxVisitsStatusCounts(chunkF), f, CFG.chunkDays);
 const stMap = new Map();
 for(const r of stRows){
