@@ -1044,6 +1044,13 @@ if(s==="rejected") return "Rejected";
 return "Pending";
 }
 
+function getFormatted(entity, attr){
+if(!entity) return "";
+const k1 = attr + "@OData.Community.Display.V1.FormattedValue";
+const k2 = attr + "@Microsoft.Dynamics.CRM.formattedvalue";
+return entity[k1] ?? entity[k2] ?? "";
+}
+
 function visitDerivedStatus(cnt){
 const t=cnt.total||0, posted=cnt.posted||0, sent=cnt.sent||0, app=cnt.approved||0, rej=cnt.rejected||0;
 if(t===0) return "Pending";
