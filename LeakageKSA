@@ -1151,7 +1151,16 @@
     const dd = String(d.getDate()).padStart(2, "0");
     return y + "-" + m + "-" + dd;
   }
-  function xmlEsc(s){
+ function toLocalDateTime(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const ss = String(d.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${dd}T${hh}:${mm}:${ss}`;
+  }  
+function xmlEsc(s){
     return (s ?? "").toString()
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
       .replace(/"/g,"&quot;").replace(/'/g,"&apos;");
@@ -1195,10 +1204,12 @@
   function getFilters(){
     const df = parseDateOnly(dateFrom.value);
     const dt = parseDateOnly(dateTo.value);
-    const end = dt ? new Date(dt.getTime() + 24*60*60*1000 - 1) : null;
-    return {
+    const start = df ? new Date(df.getFullYear(), df.getMonth(), df.getDate(), 0, 0, 0, 0) : null;
+    const end = dt ? new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59, 999) : null;    
+return {
       df,
       dt,
+      start,
       end,
       bu: (bu.value || "").trim(),
       cat: (cat.value || "").trim(),
@@ -1216,10 +1227,12 @@
   function getChartFilters(){
     const df = parseDateOnly(chartFrom.value);
     const dt = parseDateOnly(chartTo.value);
-    const end = dt ? new Date(dt.getTime() + 24*60*60*1000 - 1) : null;
+    const start = df ? new Date(df.getFullYear(), df.getMonth(), df.getDate(), 0, 0, 0, 0) : null;
+    const end = dt ? new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 23, 59, 59, 999) : null;
     return {
       df,
       dt,
+      start,
       end,
       bu: (chartBU.value || "").trim(),
       cat: (chartCat.value || "").trim(),
@@ -1261,8 +1274,8 @@
   function fxServiceBaseFiltersWithDates(f, chunkStart, chunkEnd){
     const svc = CFG.fields.service;
     let out = "";
-    out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(chunkStart.toISOString())}" />`;
-    out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(chunkEnd.toISOString())}" />`;
+    out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toLocalDateTime(chunkStart))}" />`;
+    out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toLocalDateTime(chunkEnd))}" />`;
     if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
     if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
     if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
@@ -1271,8 +1284,8 @@
   function fxServiceBaseFilters(f){
     const svc = CFG.fields.service;
     let out = "";
-    if(f.df)  out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />`;
-    if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />`;
+    if(f.start) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toLocalDateTime(f.start))}" />`;
+    if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toLocalDateTime(f.end))}" />`;
     if(svc.bu && f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
     if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
     if(f.st) out += `<condition attribute="${svc.status}" operator="eq" value="${xmlEsc(f.st)}" />`;
