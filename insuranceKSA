@@ -1370,13 +1370,12 @@ return chunks;
 function xmlEsc(s){ return (s ?? "").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;"); }
  function fmtLocalDateTime(d){
    const pad = (n)=>String(n).padStart(2,"0");
--  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-+  const offset = -d.getTimezoneOffset();
-+  const sign = offset >= 0 ? "+" : "-";
-+  const abs = Math.abs(offset);
-+  const offH = pad(Math.floor(abs / 60));
-+  const offM = pad(abs % 60);
-+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${offH}:${offM}`;
+   const offset = -d.getTimezoneOffset();
+   const sign = offset >= 0 ? "+" : "-";
+   const abs = Math.abs(offset);
+   const offH = pad(Math.floor(abs / 60));
+   const offM = pad(abs % 60);
+   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${offH}:${offM}`;
  }
 function fxServiceBaseFilters(f){
 const svc = CFG.fields.service;
