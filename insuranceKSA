@@ -1369,12 +1369,15 @@ return chunks;
 }
 
 function xmlEsc(s){ return (s ?? "").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;"); }
-
+function fmtLocalDateTime(d){
+  const pad = (n)=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 function fxServiceBaseFilters(f){
 const svc = CFG.fields.service;
 let out = "";
-if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />`;
-if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />`;
+if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />`;
+if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />`;
 if(f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
 if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
 if(f.st){
@@ -1904,9 +1907,9 @@ function renderVisitsTable() {
 
       const visitDate = v.visitDate ? new Date(v.visitDate) : null;
       const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
+      const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
       if (f.df && latestDate && latestDate < f.df) return false;
       if (f.end && latestDate && latestDate > f.end) return false;
-
 
       return true;
     });
@@ -2441,8 +2444,8 @@ function fxVisitServicesPage(visitGuid, f, page, count, orderDir){
 const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
 const where = `<filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />` : ""}
 </filter>`;
 const order = `<order attribute="${svc.createdon}" descending="${orderDir==="desc" ? "true":"false"}" />`;
 return (`<fetch page="${page}" count="${count}">
@@ -2473,8 +2476,8 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 <filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />` : ""}
 </filter>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
