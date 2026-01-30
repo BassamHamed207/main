@@ -1907,7 +1907,6 @@ function renderVisitsTable() {
 
       const visitDate = v.visitDate ? new Date(v.visitDate) : null;
       const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
-      const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
       if (f.df && latestDate && latestDate < f.df) return false;
       if (f.end && latestDate && latestDate > f.end) return false;
 
