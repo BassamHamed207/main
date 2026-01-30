@@ -1452,6 +1452,9 @@ ${order}
 <attribute name="${v.ext}" />
 <attribute name="${v.doctor}" />
 <attribute name="${v.spec}" />
+<attribute name="${v.insuranceAccount}" />
+<attribute name="${v.subaccount}" />
+<attribute name="${v.classification}" />
 ${vFilt}
 </link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
@@ -2047,8 +2050,15 @@ id: s[CFG.fields.service.id],
 createdText: dt ? dt.toLocaleString() : "—",
 createdMs: dt ? dt.getTime() : 0,
 serviceName: s[CFG.fields.service.svc] || "—",
+bu: s[CFG.fields.service.bu] || "",
+cat: s[CFG.fields.service.cat] || "",
 doctor: s["v."+CFG.fields.visit.doctor] || "—",
 specialty: s["v."+CFG.fields.visit.spec] || "—",
+visitName: s["v."+CFG.fields.visit.name] || "",
+visitExt: s["v."+CFG.fields.visit.ext] || "",
+insuranceAccount: s["v."+CFG.fields.visit.insuranceAccount] || "",
+subaccount: s["v."+CFG.fields.visit.subaccount] || "",
+visitClass: s["v."+CFG.fields.visit.classification] || "",
 patient: s["p."+CFG.fields.patient.name] || "—",
 phone: s["p."+CFG.fields.patient.phone] || "—",
 statusLabel: ns,
@@ -2689,9 +2699,14 @@ const p3 = loadVisitsAll(Xrm);
 await Promise.all([p1,p2,p3]);
 setBusy(false,"Ready");
 const isOverviewTab = tabOverview.getAttribute("aria-selected")==="true";
+const isSlaTab = tabSLA.getAttribute("aria-selected")==="true";
 if(isOverviewTab){
 setBusy(true,"Loading Overview");
 try{ await loadOverviewAgg(Xrm); } finally { setBusy(false,"Ready"); }
+}
+if(isSlaTab){
+setBusy(true,"Loading SLA");
+try{ await loadSla(Xrm); slaLoaded = true; lastSlaSig = getFilterSignature(getFilters()); } catch(e){ showToast("SLA load failed: " + (e.message || e)); } finally { setBusy(false,"Ready"); }
 }
 }catch(e){ setBusy(false,"Ready"); showToast("Load failed: " + (e.message || e)); }
 }
