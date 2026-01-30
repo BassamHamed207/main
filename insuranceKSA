@@ -1903,8 +1903,10 @@ function renderVisitsTable() {
       if (f.pphone && !(v.phone || "").includes(f.pphone)) return false;
 
       const visitDate = v.visitDate ? new Date(v.visitDate) : null;
-      if (f.df && visitDate && visitDate < f.df) return false;
-      if (f.end && visitDate && visitDate > f.end) return false;
+      const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
+      if (f.df && latestDate && latestDate < f.df) return false;
+      if (f.end && latestDate && latestDate > f.end) return false;
+
 
       return true;
     });
@@ -1945,7 +1947,7 @@ function renderVisitsTable() {
 
 
 async function loadDimensions(Xrm){
-const f = getLimitedFilters();
+const f = getFilters();
 const dims = await Promise.all([
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
@@ -2031,7 +2033,7 @@ renderServicesTable();
 });
 }
 async function loadServicesPage(Xrm){
-const f = getLimitedFilters();
+const f = getFilters();
 console.log("=== loadServicesPage: filters ===", f);
 
 // Load ALL services (no bubble filter, no pagination) - filter client-side like Visits
@@ -2083,7 +2085,7 @@ renderServiceBubbles();
 renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
-const f = getLimitedFilters();
+const f = getFilters();
 console.log("=== loadVisitsAll: filters ===", f);
 
 // Log the actual FetchXML being used
@@ -2112,6 +2114,7 @@ else if(ns==="Rejected") o.rejected += cnt;
 visAll = base.map(r=>{
 const vid = r["visitid"];
 const latestIso = r["latest"];
+const latestFormatted = getFormatted(r, "latest");
 const latestDt = latestIso ? new Date(latestIso) : null;
 const cnt = stMap.get(vid) || { total:Number(r["total"]||0), posted:0, sent:0, approved:0, rejected:0 };
 const status = visitDerivedStatus(cnt);
@@ -2130,7 +2133,7 @@ bu: buv || "—",
 insuranceAccount: insAcc,
 subaccount: subAcc,
 latestMs: latestDt ? latestDt.getTime() : 0,
-latestText: latestDt ? latestDt.toLocaleString() : "—",
+latestText: latestFormatted || (latestDt ? latestDt.toLocaleString() : "—"),
 visitStatus: status
 };
 });
@@ -2485,7 +2488,7 @@ openModal();
 }
 async function loadVisitModalPage(Xrm){
 if(!modalVisit) return;
-const f = getLimitedFilters();
+const f = getFilters();
 const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxVisitServicesCount(modalVisit.id, f));
 modalTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
 const fx = fxVisitServicesPage(modalVisit.id, f, modalPage, CFG.pageSize, modalSortDir);
