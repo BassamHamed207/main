@@ -701,6 +701,8 @@
                   <th>Visit</th>
                   <th>Patient</th>
                   <th>Phone</th>
+                  <th>Account</th>
+                  <th>Subaccount</th>
                   <th>Doctor</th>
                   <th>Specialty</th>
                   <th>Status</th>
@@ -709,7 +711,7 @@
                 </tr>
               </thead>
               <tbody id="tbVisits">
-                <tr><td class="muted" colspan="8">No data</td></tr>
+                <tr><td class="muted" colspan="10">No data</td></tr>
               </tbody>
             </table>
           </div>
@@ -814,13 +816,15 @@
                   <th>Patient</th>
                   <th>Phone</th>
                   <th>Specialty</th>
+                  <th>Account</th>
+                  <th>Subaccount</th>
                   <th>Bucket</th>
                   <th>Leakage Reason</th>
                   <th style="text-align:right">Action</th>
                 </tr>
               </thead>
               <tbody id="tbServices">
-                <tr><td class="muted" colspan="10">No data</td></tr>
+                   <tr><td class="muted" colspan="12">No data</td></tr>
               </tbody>
             </table>
           </div>
@@ -904,13 +908,15 @@
                   <th style="width:40px">Sel</th>
                   <th>Created</th>
                   <th>Service</th>
+                   <th>Account</th>
+                  <th>Subaccount</th>
                   <th>Bucket</th>
                   <th>Leakage Reason</th>
                   <th style="text-align:right">Action</th>
                 </tr>
               </thead>
               <tbody id="pvTb">
-                <tr><td class="muted" colspan="6">—</td></tr>
+                <tr><td class="muted" colspan="8">—</td></tr>
               </tbody>
             </table>
           </div>
@@ -1453,6 +1459,8 @@ return {
           <td>${escapeHtml(r.doctor)}</td>
           <td>${escapeHtml(r.patient)}</td>
           <td>${escapeHtml(r.phone)}</td>
+          <td>${escapeHtml(r.insuranceAccount || "—")}</td>
+          <td>${escapeHtml(r.subaccount || "—")}</td>
           <td>${escapeHtml(r.specialty)}</td>
           <td>${escapeHtml(r.bucket)}</td>
           <td>${escapeHtml(r.leakageReasonLabel || "—")}</td>
@@ -1461,7 +1469,7 @@ return {
           </td>
         </tr>
       `;
-    }).join("")) || `<tr><td class="muted" colspan="10">No data</td></tr>`;
+    }).join("")) || `<tr><td class="muted" colspan="12">No data</td></tr>`;
     const from = (total === 0) ? 0 : start + 1;
     const to = Math.min(start + CFG.pageSize, total);
     svcPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(total);
@@ -1481,6 +1489,8 @@ return {
           <td>${escapeHtml(visitLabel)}</td>
           <td>${escapeHtml(v.patient)}</td>
           <td>${escapeHtml(v.phone)}</td>
+          <td>${escapeHtml(r.insuranceAccount || "—")}</td>
+          <td>${escapeHtml(r.subaccount || "—")}</td>
           <td>${escapeHtml(v.doctor)}</td>
           <td>${escapeHtml(v.specialty)}</td>
           <td>${escapeHtml(v.visitStatus)}</td>
@@ -1490,7 +1500,7 @@ return {
           </td>
         </tr>
       `;
-    }).join("")) || `<tr><td class="muted" colspan="8">No data</td></tr>`;
+    }).join("")) || `<tr><td class="muted" colspan="10">No data</td></tr>`;
     const from = (total===0) ? 0 : start+1;
     const to = Math.min(start+CFG.pageSize, total);
     visPageInfo.textContent = "Showing " + fmtInt(from) + "–" + fmtInt(to) + " of " + fmtInt(total);
@@ -1522,6 +1532,8 @@ return {
             <attribute name="${v.ext}" />
             <attribute name="${v.doctor}" />
             <attribute name="${v.spec}" />
+            <attribute name="${v.insuranceAccount}" />
+            <attribute name="${v.subaccount}" />
             ${vFilt}
           </link-entity>
           <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
@@ -1674,6 +1686,8 @@ return {
     const notes = normText(e[svc.notes]);
     const doctor = normText(e["v."+v.doctor]) || "—";
     const specialty = normText(e["v."+v.spec]) || "—";
+    const insuranceAccount = normText(e["v."+v.insuranceAccount]) || "—";
+    const subaccount = normText(e["v."+v.subaccount]) || "—";
     const patient = normText(e["p."+p.name]) || "—";
     const phone = normText(e["p."+p.phone]) || "—";
     const visitId = e[svc.visitFk] ? e[svc.visitFk] : (e["v."+v.id] || "");
@@ -1690,6 +1704,8 @@ return {
       leakageReasonLabel,
       notes,
       doctor,
+      insuranceAccount,
+      subaccount,
       specialty,
       patient,
       phone,
@@ -1720,6 +1736,8 @@ return {
           visitExt: r.visitExt || "",
           patient: r.patient || "—",
           phone: r.phone || "—",
+          insuranceAccount: r.insuranceAccount || "—",
+          subaccount: r.subaccount || "—",
           doctor: r.doctor || "—",
           specialty: r.specialty || "—",
           latest: r.created ? r.created.getTime() : 0,
@@ -2048,6 +2066,8 @@ return {
             <attribute name="${v.ext}" />
             <attribute name="${v.doctor}" />
             <attribute name="${v.spec}" />
+            <attribute name="${v.insuranceAccount}" />
+            <attribute name="${v.subaccount}" />
             ${vFilt}
           </link-entity>
           <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
@@ -2128,6 +2148,8 @@ return {
           <link-entity name="${CFG.visit}" from="${v.id}" to="${svc.visitFk}" link-type="inner" alias="v">
             <attribute name="${v.name}" />
             <attribute name="${v.ext}" />
+            <attribute name="${v.insuranceAccount}" />
+            <attribute name="${v.subaccount}" />
             ${vFilt}
           </link-entity>
           <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
@@ -2147,6 +2169,8 @@ return {
           <td><input class="chk" type="checkbox" data-pv-sel="${escapeHtml(r.id)}" ${checked}></td>
           <td>${escapeHtml(r.createdText)}</td>
           <td>${escapeHtml(r.serviceName)}</td>
+          <td>${escapeHtml(r.insuranceAccount || "—")}</td>
+          <td>${escapeHtml(r.subaccount || "—")}</td>
           <td>${escapeHtml(r.bucket)}</td>
           <td>${escapeHtml(r.leakageReasonLabel || "—")}</td>
           <td class="rowActions">
@@ -2154,7 +2178,7 @@ return {
           </td>
         </tr>
       `;
-    }).join("")) || `<tr><td class="muted" colspan="6">—</td></tr>`;
+    }).join("")) || `<tr><td class="muted" colspan="8">—</td></tr>`;
     pvPageInfo.textContent = `Page ${modalPage}`;
     pvPrev.disabled = modalPage<=1;
     pvNext.disabled = !res || !res.nextLink;
@@ -2426,7 +2450,7 @@ return {
       showToast("No data to export."); 
       return; 
     }
-    const header = ["Created","Service","Doctor","Specialty","Patient","Phone","Bucket","Status","Leakage Reason","Notes","Visit"];
+    const header = ["Created","Service","Doctor","Specialty","Patient","Phone","Account","Subaccount","Bucket","Status","Leakage Reason","Notes","Visit"];
     const body = filtered.map(r=>[
       r.createdText,
       r.serviceName,
@@ -2434,6 +2458,8 @@ return {
       r.specialty,
       r.patient,
       r.phone,
+      r.insuranceAccount || "",
+      r.subaccount || "",
       r.bucket,
       r.statusText,
       r.leakageReasonLabel || "",
