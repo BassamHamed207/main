@@ -1848,6 +1848,8 @@ const filtered = allSvcRows.filter(r=>{
     if(!(r.subaccount || "").toLowerCase().includes(search)) return false;
   }
   if(f.visitClass && r.visitClass !== f.visitClass) return false;
+  if(f.df && r.createdMs < f.df.getTime()) return false;
+  if(f.end && r.createdMs > f.end.getTime()) return false;
   return true;
 });
 const total = filtered.length;
