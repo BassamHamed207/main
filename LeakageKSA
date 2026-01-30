@@ -1459,9 +1459,9 @@ return {
           <td>${escapeHtml(r.doctor)}</td>
           <td>${escapeHtml(r.patient)}</td>
           <td>${escapeHtml(r.phone)}</td>
-          <td>${escapeHtml(r.insuranceAccount || "—")}</td>
-          <td>${escapeHtml(r.subaccount || "—")}</td>
           <td>${escapeHtml(r.specialty)}</td>
+           <td>${escapeHtml(r.insuranceAccount || "—")}</td>
+          <td>${escapeHtml(r.subaccount || "—")}</td>
           <td>${escapeHtml(r.bucket)}</td>
           <td>${escapeHtml(r.leakageReasonLabel || "—")}</td>
           <td class="rowActions">
@@ -1489,8 +1489,8 @@ return {
           <td>${escapeHtml(visitLabel)}</td>
           <td>${escapeHtml(v.patient)}</td>
           <td>${escapeHtml(v.phone)}</td>
-          <td>${escapeHtml(r.insuranceAccount || "—")}</td>
-          <td>${escapeHtml(r.subaccount || "—")}</td>
+          <td>${escapeHtml(v.insuranceAccount || "—")}</td>
+          <td>${escapeHtml(v.subaccount || "—")}</td>
           <td>${escapeHtml(v.doctor)}</td>
           <td>${escapeHtml(v.specialty)}</td>
           <td>${escapeHtml(v.visitStatus)}</td>
