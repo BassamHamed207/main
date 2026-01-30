@@ -1367,21 +1367,14 @@ cur = new Date(chunkEnd.getTime() + 1);
 }
 return chunks;
 }
+
 function xmlEsc(s){ return (s ?? "").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;"); }
- function fmtLocalDateTime(d){
-   const pad = (n)=>String(n).padStart(2,"0");
-   const offset = -d.getTimezoneOffset();
-   const sign = offset >= 0 ? "+" : "-";
-   const abs = Math.abs(offset);
-   const offH = pad(Math.floor(abs / 60));
-   const offM = pad(abs % 60);
-   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${offH}:${offM}`;
- }
+
 function fxServiceBaseFilters(f){
 const svc = CFG.fields.service;
 let out = "";
-if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />`;
-if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />`;
+if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />`;
+if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />`;
 if(f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
 if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
 if(f.st){
@@ -1459,9 +1452,6 @@ ${order}
 <attribute name="${v.ext}" />
 <attribute name="${v.doctor}" />
 <attribute name="${v.spec}" />
-<attribute name="${v.insuranceAccount}" />
-<attribute name="${v.subaccount}" />
-<attribute name="${v.classification}" />
 ${vFilt}
 </link-entity>
 <link-entity name="${CFG.patient}" from="${p.id}" to="${svc.patientFk}" link-type="inner" alias="p">
@@ -1855,8 +1845,6 @@ const filtered = allSvcRows.filter(r=>{
     if(!(r.subaccount || "").toLowerCase().includes(search)) return false;
   }
   if(f.visitClass && r.visitClass !== f.visitClass) return false;
-  if(f.df && r.createdMs < f.df.getTime()) return false;
-  if(f.end && r.createdMs > f.end.getTime()) return false;
   return true;
 });
 const total = filtered.length;
@@ -1910,9 +1898,8 @@ function renderVisitsTable() {
       if (f.pphone && !(v.phone || "").includes(f.pphone)) return false;
 
       const visitDate = v.visitDate ? new Date(v.visitDate) : null;
-      const latestDate = v.latestMs ? new Date(v.latestMs) : visitDate;
-      if (f.df && latestDate && latestDate < f.df) return false;
-      if (f.end && latestDate && latestDate > f.end) return false;
+      if (f.df && visitDate && visitDate < f.df) return false;
+      if (f.end && visitDate && visitDate > f.end) return false;
 
       return true;
     });
@@ -1953,7 +1940,7 @@ function renderVisitsTable() {
 
 
 async function loadDimensions(Xrm){
-const f = getFilters();
+const f = getLimitedFilters();
 const dims = await Promise.all([
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"bu")),
 retrieveAllFetch(Xrm, CFG.service, fxDimAgg(f,"cat")),
@@ -2039,7 +2026,7 @@ renderServicesTable();
 });
 }
 async function loadServicesPage(Xrm){
-const f = getFilters();
+const f = getLimitedFilters();
 console.log("=== loadServicesPage: filters ===", f);
 
 // Load ALL services (no bubble filter, no pagination) - filter client-side like Visits
@@ -2060,15 +2047,8 @@ id: s[CFG.fields.service.id],
 createdText: dt ? dt.toLocaleString() : "—",
 createdMs: dt ? dt.getTime() : 0,
 serviceName: s[CFG.fields.service.svc] || "—",
-bu: s[CFG.fields.service.bu] || "",
-cat: s[CFG.fields.service.cat] || "",
 doctor: s["v."+CFG.fields.visit.doctor] || "—",
 specialty: s["v."+CFG.fields.visit.spec] || "—",
-visitName: s["v."+CFG.fields.visit.name] || "",
-visitExt: s["v."+CFG.fields.visit.ext] || "",
-insuranceAccount: s["v."+CFG.fields.visit.insuranceAccount] || "",
-subaccount: s["v."+CFG.fields.visit.subaccount] || "",
-visitClass: s["v."+CFG.fields.visit.classification] || "",
 patient: s["p."+CFG.fields.patient.name] || "—",
 phone: s["p."+CFG.fields.patient.phone] || "—",
 statusLabel: ns,
@@ -2091,7 +2071,7 @@ renderServiceBubbles();
 renderServicesTable();
 }
 async function loadVisitsAll(Xrm){
-const f = getFilters();
+const f = getLimitedFilters();
 console.log("=== loadVisitsAll: filters ===", f);
 
 // Log the actual FetchXML being used
@@ -2120,7 +2100,6 @@ else if(ns==="Rejected") o.rejected += cnt;
 visAll = base.map(r=>{
 const vid = r["visitid"];
 const latestIso = r["latest"];
-const latestFormatted = getFormatted(r, "latest");
 const latestDt = latestIso ? new Date(latestIso) : null;
 const cnt = stMap.get(vid) || { total:Number(r["total"]||0), posted:0, sent:0, approved:0, rejected:0 };
 const status = visitDerivedStatus(cnt);
@@ -2139,7 +2118,7 @@ bu: buv || "—",
 insuranceAccount: insAcc,
 subaccount: subAcc,
 latestMs: latestDt ? latestDt.getTime() : 0,
-latestText: latestFormatted || (latestDt ? latestDt.toLocaleString() : "—"),
+latestText: latestDt ? latestDt.toLocaleString() : "—",
 visitStatus: status
 };
 });
@@ -2447,8 +2426,8 @@ function fxVisitServicesPage(visitGuid, f, page, count, orderDir){
 const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
 const where = `<filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />` : ""}
 </filter>`;
 const order = `<order attribute="${svc.createdon}" descending="${orderDir==="desc" ? "true":"false"}" />`;
 return (`<fetch page="${page}" count="${count}">
@@ -2479,8 +2458,8 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 <filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(fmtLocalDateTime(f.df))}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(fmtLocalDateTime(f.end))}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(f.df.toISOString())}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(f.end.toISOString())}" />` : ""}
 </filter>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
@@ -2494,7 +2473,7 @@ openModal();
 }
 async function loadVisitModalPage(Xrm){
 if(!modalVisit) return;
-const f = getFilters();
+const f = getLimitedFilters();
 const cntRows = await retrieveAllFetch(Xrm, CFG.service, fxVisitServicesCount(modalVisit.id, f));
 modalTotal = cntRows.length ? Number(cntRows[0]["cnt"]||0) : 0;
 const fx = fxVisitServicesPage(modalVisit.id, f, modalPage, CFG.pageSize, modalSortDir);
@@ -2710,14 +2689,9 @@ const p3 = loadVisitsAll(Xrm);
 await Promise.all([p1,p2,p3]);
 setBusy(false,"Ready");
 const isOverviewTab = tabOverview.getAttribute("aria-selected")==="true";
-const isSlaTab = tabSLA.getAttribute("aria-selected")==="true";
 if(isOverviewTab){
 setBusy(true,"Loading Overview");
 try{ await loadOverviewAgg(Xrm); } finally { setBusy(false,"Ready"); }
-}
-if(isSlaTab){
-setBusy(true,"Loading SLA");
-try{ await loadSla(Xrm); slaLoaded = true; lastSlaSig = getFilterSignature(getFilters()); } catch(e){ showToast("SLA load failed: " + (e.message || e)); } finally { setBusy(false,"Ready"); }
 }
 }catch(e){ setBusy(false,"Ready"); showToast("Load failed: " + (e.message || e)); }
 }
