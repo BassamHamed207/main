@@ -1184,12 +1184,7 @@ const dd = String(d.getDate()).padStart(2, "0");
 const hh = String(d.getHours()).padStart(2, "0");
 const mm = String(d.getMinutes()).padStart(2, "0");
 const ss = String(d.getSeconds()).padStart(2, "0");
-const offsetMinutes = -d.getTimezoneOffset();
-const sign = offsetMinutes >= 0 ? "+" : "-";
-const offsetAbs = Math.abs(offsetMinutes);
-const offH = String(Math.floor(offsetAbs / 60)).padStart(2, "0");
-const offM = String(offsetAbs % 60).padStart(2, "0");
-return `${y}-${m}-${dd}T${hh}:${mm}:${ss}${sign}${offH}:${offM}`;
+return `${y}-${m}-${dd}T${hh}:${mm}:${ss}`;
 }
 function dur(ms){
 if(ms===null||ms===undefined||!isFinite(ms)||ms<0) return "—";
