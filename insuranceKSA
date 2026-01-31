@@ -1382,8 +1382,8 @@ function xmlEsc(s){ return (s ?? "").toString().replace(/&/g,"&amp;").replace(/<
 function fxServiceBaseFilters(f){
 const svc = CFG.fields.service;
 let out = "";
-if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toLocalDateTime(f.df))}" />`;
-if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toLocalDateTime(f.end))}" />`;
+if(f.df) out += `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toIsoDate(f.df))}" />`;
+if(f.end) out += `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toIsoDate(f.end))}" />`;
 if(f.bu) out += `<condition attribute="${svc.bu}" operator="eq" value="${xmlEsc(f.bu)}" />`;
 if(f.cat) out += `<condition attribute="${svc.cat}" operator="eq" value="${xmlEsc(f.cat)}" />`;
 if(f.st){
@@ -2435,8 +2435,8 @@ function fxVisitServicesPage(visitGuid, f, page, count, orderDir){
 const svc = CFG.fields.service, v = CFG.fields.visit, p = CFG.fields.patient;
 const where = `<filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toLocalDateTime(f.df))}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toLocalDateTime(f.end))}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toIsoDate(f.df))}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toIsoDate(f.end))}" />` : ""}
 </filter>`;
 const order = `<order attribute="${svc.createdon}" descending="${orderDir==="desc" ? "true":"false"}" />`;
 return (`<fetch page="${page}" count="${count}">
@@ -2467,8 +2467,8 @@ return (`<fetch aggregate="true">
 <attribute name="${svc.id}" aggregate="count" alias="cnt" />
 <filter type="and">
 <condition attribute="${svc.visitFk}" operator="eq" value="${xmlEsc(visitGuid)}" />
-${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toLocalDateTime(f.df))}" />` : ""}
-${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toLocalDateTime(f.end))}" />` : ""}
+${f.df ? `<condition attribute="${svc.createdon}" operator="on-or-after" value="${xmlEsc(toIsoDate(f.df))}" />` : ""}
+${f.end ? `<condition attribute="${svc.createdon}" operator="on-or-before" value="${xmlEsc(toIsoDate(f.end))}" />` : ""}
 </filter>
 </entity>
 </fetch>`).replace(/\s+/g," ").trim();
