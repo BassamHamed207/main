@@ -1,0 +1,1263 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BU Achievement</title>
+
+  <style>
+    :root{
+      --bg1:#fbf8f2; --bg2:#ffffff;
+      --panel:rgba(255,255,255,.88); --panel2:rgba(255,255,255,.62);
+      --border:rgba(17,24,39,.10);
+      --text:#0f172a; --muted:#64748b;
+
+      --gold:#c6a16a;
+      --gold2:#b68d55;
+      --gold3:#d7bb8d;
+
+      --shadow: 0 30px 90px rgba(0,0,0,.10);
+      --shadow2: 0 18px 45px rgba(0,0,0,.08);
+      --shadow3: 0 10px 22px rgba(0,0,0,.06);
+
+      --radius:22px;
+      --rowH:52px;
+      --ring: 0 0 0 4px rgba(198,161,106,.18);
+
+      --shine: linear-gradient(120deg, rgba(255,255,255,.00), rgba(255,255,255,.55), rgba(255,255,255,.00));
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    body{
+      margin:0;
+      font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1150px 620px at 18% 0%, rgba(198,161,106,.18), transparent 58%),
+        radial-gradient(900px 520px at 85% 12%, rgba(198,161,106,.10), transparent 62%),
+        radial-gradient(520px 520px at 50% 115%, rgba(15,23,42,.05), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      overflow-x:hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes floatIn{
+      from{opacity:0; transform: translateY(10px) scale(.99)}
+      to{opacity:1; transform: translateY(0) scale(1)}
+    }
+    @keyframes shimmer{
+      0%{background-position:140% 0}
+      100%{background-position:-140% 0}
+    }
+    @keyframes sheen{
+      0%{transform:translateX(-120%)}
+      100%{transform:translateX(120%)}
+    }
+
+    .wrap{max-width:1360px;margin:18px auto;padding:0 14px 28px;animation:floatIn .38s ease-out}
+
+    .layout{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .leftPanel{
+      border:1px solid rgba(255,255,255,.35);
+      background:
+        radial-gradient(1200px 360px at 30% -20%, rgba(198,161,106,.20), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+      border-radius:var(--radius);
+      box-shadow:var(--shadow2);
+      backdrop-filter: blur(16px);
+      padding:16px;
+      position:sticky;
+      top:14px;
+      overflow:hidden;
+    }
+    .leftPanel:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(600px 220px at 18% 0%, rgba(255,255,255,.55), transparent 55%),
+                  radial-gradient(520px 240px at 80% 10%, rgba(255,255,255,.30), transparent 60%);
+      pointer-events:none;
+      opacity:.55;
+    }
+    .leftPanel:after{
+      content:"";
+      position:absolute; left:-40%; top:-10%;
+      width:180%; height:60px;
+      background: var(--shine);
+      opacity:.35;
+      transform: skewX(-14deg);
+      animation: sheen 7.2s linear infinite;
+      pointer-events:none;
+    }
+
+    .rightPanel{
+      border:1px solid rgba(255,255,255,.30);
+      background:
+        radial-gradient(1100px 360px at 25% -18%, rgba(198,161,106,.16), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow:hidden;
+      position:relative;
+    }
+    .rightPanel:after{
+      content:"";
+      position:absolute; left:-30%; top:-6%;
+      width:160%; height:64px;
+      background: var(--shine);
+      opacity:.22;
+      transform: skewX(-14deg);
+      animation: sheen 7.8s linear infinite;
+      pointer-events:none;
+    }
+
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2}
+    .icon{
+      width:48px;height:48px;border-radius:18px;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      box-shadow:0 18px 45px rgba(198,161,106,.22);
+      flex:0 0 auto;
+      position:relative;
+      overflow:hidden;
+    }
+    .icon:after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55), rgba(255,255,255,0));
+      transform: rotate(18deg);
+      animation: sheen 6.8s linear infinite;
+      opacity:.35;
+      pointer-events:none;
+    }
+    .icon svg{width:22px;height:22px;fill:rgba(255,255,255,.98);position:relative;z-index:1}
+
+    .title h1{
+      margin:0;
+      font-size:17px;
+      font-weight:1100;
+      letter-spacing:.25px;
+      line-height:1.15;
+      background: linear-gradient(135deg, rgba(15,23,42,1), rgba(15,23,42,.78));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow: 0 10px 28px rgba(198,161,106,.14);
+    }
+    .title h1 .accent{
+      background: linear-gradient(135deg, rgba(214,187,141,1), rgba(182,141,85,1));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      filter: drop-shadow(0 12px 26px rgba(198,161,106,.20));
+    }
+
+    .leftStack{display:flex;flex-direction:column;gap:12px;position:relative;z-index:2}
+    .field{display:flex;flex-direction:column;gap:7px;position:relative}
+    .field label{font-size:12.5px;color:rgba(71,85,105,.95);font-weight:950}
+
+    .input,.btn{
+      height:48px;border-radius:18px;border:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.92);
+      padding:0 14px;
+      outline:none;
+      box-shadow:var(--shadow3);
+      transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease, background .16s ease;
+      width:100%;
+      font-size:14px;
+      position:relative;
+      z-index:2;
+    }
+    .input:focus{
+      border-color:rgba(198,161,106,.70);
+      box-shadow:var(--ring), var(--shadow3);
+      background:rgba(255,255,255,.97);
+      transform: translateY(-1px);
+    }
+
+    .comboWrap{position:relative;z-index:5}
+    .comboWrap .input{padding-right:52px}
+
+    .caretBtn{
+      position:absolute;right:10px;
+      top: calc(24px + 7px + (48px - 30px)/2);
+      width:30px;height:30px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      color:#64748b;cursor:pointer;
+      background:rgba(15,23,42,.04);
+      border:1px solid rgba(15,23,42,.08);
+      user-select:none;
+      transition: transform .16s ease, background .16s ease, box-shadow .16s ease, border-color .16s ease;
+      box-shadow: 0 10px 18px rgba(0,0,0,.05);
+      z-index:50;
+      pointer-events:auto;
+      touch-action: manipulation;
+      padding:0;
+      line-height:1;
+      font-weight:1000;
+    }
+    .caretBtn:hover{
+      background:rgba(198,161,106,.10);
+      border-color:rgba(198,161,106,.30);
+      transform:translateY(-1px);
+      box-shadow: 0 14px 26px rgba(198,161,106,.14);
+    }
+    .caretBtn:active{transform:translateY(0) scale(.99)}
+
+    .leftActions{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:4px;
+      position:relative;
+      z-index:2;
+    }
+    .btn{
+      cursor:pointer;
+      font-weight:1100;
+      border:none;
+      color:white;
+      background:linear-gradient(180deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      box-shadow:0 18px 45px rgba(198,161,106,.20);
+      position:relative;
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+    .btn.secondary{
+      background:rgba(255,255,255,.92);
+      color:var(--text);
+      border:1px solid rgba(15,23,42,.12);
+      box-shadow:var(--shadow3);
+    }
+
+    .toast{
+      margin-top:10px;
+      padding:10px 12px;border-radius:16px;
+      border:1px solid rgba(185,28,28,.18);
+      background:rgba(185,28,28,.06);color:#7f1d1d;display:none;
+      white-space:pre-wrap;font-weight:900;
+      position:relative;z-index:2;
+      animation: floatIn .22s ease-out;
+    }
+
+    .tabs{
+      padding:14px 16px 10px;
+      display:flex;flex-wrap:wrap;gap:10px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.46);
+      position:relative;
+      z-index:1;
+    }
+    .tab{
+      border:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.86);
+      padding:10px 14px;border-radius:999px;
+      cursor:pointer;user-select:none;font-size:13px;font-weight:1100;
+      box-shadow:var(--shadow3);
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+      position:relative;
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+    .tab.active{
+      background:linear-gradient(180deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      color:white;border:none;
+      box-shadow:0 22px 60px rgba(198,161,106,.18);
+      transform:translateY(-1px);
+    }
+
+    .tableTitle{
+      padding:16px 16px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      background: linear-gradient(180deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      color:#fff;
+      font-weight:1250;
+      letter-spacing:.35px;
+      font-size:15px;
+      text-shadow:
+        0 0 18px rgba(255,255,255,.18),
+        0 14px 34px rgba(0,0,0,.22);
+      box-shadow:
+        0 16px 40px rgba(198,161,106,.20),
+        inset 0 1px 0 rgba(255,255,255,.30);
+      position:relative;
+      z-index:2;
+      text-align:center;
+    }
+
+    .tableHead,.row{
+      display:grid;
+      grid-template-columns: 2.1fr 1.3fr 1fr 1fr 1.1fr .9fr;
+      gap:12px;
+      align-items:center;
+      padding:0 16px;
+    }
+
+    .tableHead{
+      height:54px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      background: linear-gradient(180deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      font-weight:1200;
+      position:sticky;
+      top:0;
+      z-index:3;
+      color:#ffffff;
+      letter-spacing:.25px;
+      font-size:12.8px;
+      backdrop-filter: blur(14px);
+    }
+
+    .body{max-height:68vh;overflow:auto;scrollbar-gutter: stable;position:relative;z-index:1}
+
+    .row{
+      min-height:var(--rowH);
+      border-bottom:1px solid rgba(15,23,42,.06);
+      font-size:13.5px;
+      padding-top:10px;
+      padding-bottom:10px;
+      position:relative;
+      transition: background .14s ease, transform .14s ease;
+    }
+    .row:hover{
+      background:rgba(255,255,255,.34);
+      transform: translateY(-1px);
+    }
+    .kpiName{font-weight:1100}
+    .num{text-align:right;font-variant-numeric: tabular-nums}
+
+    .pill{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:96px;
+      padding:8px 12px;border-radius:999px;font-size:12.5px;font-weight:1100;
+      border:1px solid rgba(15,23,42,.10);
+      color:#0f172a;
+      background:rgba(15,23,42,.03);
+      box-shadow: 0 10px 22px rgba(0,0,0,.05);
+    }
+    .pill.red{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.26)}
+    .pill.yellow{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.28)}
+    .pill.green{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.26)}
+    .pill.blue{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.26)}
+
+    .miniBtn{
+      height:38px;
+      padding:0 14px;
+      border-radius:999px;
+      border:none;
+      cursor:pointer;
+      font-weight:1100;
+      font-size:13px;
+      background:linear-gradient(180deg, rgba(214,187,141,.98), rgba(182,141,85,.98));
+      color:white;
+      box-shadow:0 18px 45px rgba(198,161,106,.16);
+      width:92px;
+      touch-action: manipulation;
+    }
+
+    .dropdown{
+      position:fixed;
+      z-index:9999999;
+      display:none;
+      border:1px solid rgba(15,23,42,.12);
+      border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.86));
+      box-shadow:0 30px 90px rgba(0,0,0,.18);
+      backdrop-filter: blur(14px);
+      max-height:320px;
+      overflow:auto;
+      min-width:260px;
+      animation: floatIn .16s ease-out;
+      touch-action: manipulation;
+    }
+    .opt{padding:10px 12px;cursor:pointer;font-size:13px;transition: background .12s ease;touch-action: manipulation}
+    .opt:hover{background:rgba(198,161,106,.12)}
+    .opt .sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:850}
+    .opt.empty{color:#64748b;font-weight:950;cursor:default}
+    .opt.empty:hover{background:transparent}
+
+    .skeleton{
+      height:54px;
+      background:linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.55), rgba(255,255,255,.08));
+      background-size:240% 100%;
+      animation: shimmer 1.2s infinite;
+      border-bottom:1px solid rgba(15,23,42,.06);
+    }
+
+    .modalBack{
+      position:fixed;inset:0;background:rgba(15,23,42,.50);
+      display:none;align-items:center;justify-content:center;padding:14px;
+      z-index:9999999;
+      backdrop-filter: blur(4px);
+    }
+    .modal{
+      width:min(980px, 96vw);
+      border-radius:20px;border:1px solid rgba(255,255,255,.22);
+      background:
+        radial-gradient(900px 260px at 20% -10%, rgba(198,161,106,.16), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74));
+      box-shadow:0 40px 120px rgba(0,0,0,.30);
+      backdrop-filter: blur(18px);
+      overflow:hidden;
+      position:relative;
+      animation: floatIn .22s ease-out;
+    }
+    .modalHeader{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px;border-bottom:1px solid rgba(15,23,42,.10);
+      background:rgba(255,255,255,.52);
+    }
+    .modalHeader h3{margin:0;font-size:14px;font-weight:1100}
+    .close{
+      width:38px;height:38px;border-radius:14px;
+      border:1px solid rgba(15,23,42,.12);
+      background:rgba(255,255,255,.78);
+      cursor:pointer;font-weight:1100;
+      touch-action: manipulation;
+    }
+    .modalBody{padding:14px 16px 18px;position:relative}
+    .legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:900}
+    .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+    .dot.a{background:rgba(214,187,141,.98)}
+    .dot.t{background:rgba(15,23,42,.55)}
+    .tooltip{
+      position:absolute;
+      display:none;
+      pointer-events:none;
+      padding:8px 10px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.14);
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.86));
+      box-shadow:0 22px 60px rgba(0,0,0,.16);
+      font-size:12px;
+      font-weight:1100;
+      color:#0f172a;
+      backdrop-filter: blur(14px);
+      white-space:nowrap;
+      z-index:50;
+      transform:translate(-50%,-120%);
+      animation: floatIn .12s ease-out;
+    }
+
+    @media (max-width: 1024px){
+      .layout{grid-template-columns:1fr}
+      .leftPanel{position:relative;top:auto}
+    }
+
+    @media (max-width: 720px){
+      .wrap{padding-left:12px;padding-right:12px}
+      .leftActions{grid-template-columns:1fr}
+      .layout{gap:14px}
+      .tableHead{display:none}
+      .body{max-height:none}
+      .row{
+        display:block;
+        padding:14px 14px;
+        margin:10px 12px;
+        border:1px solid rgba(15,23,42,.08);
+        border-radius:20px;
+        background:linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.70));
+        box-shadow:0 18px 45px rgba(0,0,0,.06);
+      }
+      .row > div{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:14px;
+        padding:8px 0;
+        border-bottom:1px dashed rgba(15,23,42,.10);
+        text-align:left !important;
+      }
+      .row > div:last-child{border-bottom:none}
+      .row > div:nth-child(1){
+        display:block;
+        border-bottom:1px solid rgba(15,23,42,.08);
+        padding-bottom:10px;
+        margin-bottom:6px;
+      }
+      .kpiName{font-size:14.5px}
+      .row > div:nth-child(2)::before{content:"Category";font-weight:900;color:rgba(71,85,105,.92)}
+      .row > div:nth-child(3)::before{content:"Actual";font-weight:900;color:rgba(71,85,105,.92)}
+      .row > div:nth-child(4)::before{content:"Target";font-weight:900;color:rgba(71,85,105,.92)}
+      .row > div:nth-child(5)::before{content:"Achievement";font-weight:900;color:rgba(71,85,105,.92)}
+      .row > div:nth-child(6)::before{content:"Action";font-weight:900;color:rgba(71,85,105,.92)}
+      .row > div:nth-child(6) button{
+        width:100%;
+        height:44px;
+        border-radius:16px;
+      }
+      .pill{min-width:0}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="layout">
+
+      <div class="leftPanel">
+        <div class="brand">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 3a1 1 0 0 1 1 1v1h8V4a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v3H2V7a2 2 0 0 1 2-2h1V4a1 1 0 1 1 2 0v1Zm15 9v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7h20Zm-3 2H5v5h14v-5Z"/>
+            </svg>
+          </div>
+          <div class="title">
+            <h1><span class="accent">BU Level</span><br/>Achievement</h1>
+          </div>
+        </div>
+
+        <div class="leftStack">
+          <div class="field">
+            <label>Month</label>
+            <input class="input" id="month" type="month" />
+          </div>
+
+          <div class="field comboWrap">
+            <label>Business Unit</label>
+            <input class="input" id="bu" placeholder="Type..." autocomplete="off"/>
+            <button class="caretBtn" id="buOpen" type="button" aria-label="Open Business Unit">▾</button>
+          </div>
+
+          <div class="field comboWrap">
+            <label>Specialty</label>
+            <input class="input" id="spec" placeholder="Type..." autocomplete="off"/>
+            <button class="caretBtn" id="specOpen" type="button" aria-label="Open Specialty">▾</button>
+          </div>
+
+          <div class="field comboWrap">
+            <label>Doctor</label>
+            <input class="input" id="doc" placeholder="Type..." autocomplete="off"/>
+            <button class="caretBtn" id="docOpen" type="button" aria-label="Open Doctor">▾</button>
+          </div>
+
+          <div class="leftActions">
+            <button class="btn" id="searchBtn" type="button">Search</button>
+            <button class="btn secondary" id="resetBtn" type="button">Reset</button>
+          </div>
+
+          <div class="toast" id="toast"></div>
+        </div>
+      </div>
+
+      <div class="rightPanel">
+        <div class="tabs" id="tabs"></div>
+        <div class="tableTitle" id="tableTitle">FULL KPIs Analysis</div>
+
+        <div class="tableHead">
+          <div>KPI</div>
+          <div>KPI Category</div>
+          <div class="num">Actual</div>
+          <div class="num">Target</div>
+          <div class="num">Achievement</div>
+          <div class="num">Action</div>
+        </div>
+
+        <div class="body" id="tbody"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="dropdown" id="dd"></div>
+
+  <div class="modalBack" id="modalBack">
+    <div class="modal">
+      <div class="modalHeader">
+        <h3 id="modalTitle"></h3>
+        <button class="close" id="closeModal" type="button">✕</button>
+      </div>
+      <div class="modalBody" id="modalBody">
+        <div class="legend">
+          <span><span class="dot a"></span> Actual</span>
+          <span><span class="dot t"></span> Target</span>
+        </div>
+        <div id="chartHost"></div>
+        <div class="tooltip" id="tip"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const XRM = window.Xrm || (window.parent && window.parent.Xrm) || (window.top && window.top.Xrm) || null;
+
+    const TABLE = "pmsegy_achievement";
+
+    const COLS = {
+      date: "pmsegy_date",
+      bu: "pmsegy_businessunit",
+      doc: "pmsegy_doctor",
+      spec: "pmsegy_doctorspecialty",
+      kpiName: "pmsegy_kpinam",
+      kpiId: "_pmsegy_kpi_value",
+      kpiCategory: "pmsegy_kpicategory",
+      actual: "pmsegy_actual",
+      target: "pmsegy_target",
+      ach: "pmsegy_achievementid"
+    };
+
+    const TREND_MONTHS = 12;
+
+    const $ = (id)=>document.getElementById(id);
+    const esc = (s)=>String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+    const escXml = (s)=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+    const fmtNum = (v)=> (v===null||v===undefined||isNaN(v)) ? "0" : Number(v).toLocaleString(undefined,{maximumFractionDigits:2});
+    const fmtPct = (v)=> (v===null||v===undefined||isNaN(v)) ? "0.00%" : (Number(v)*100).toFixed(2)+"%";
+    const showToast = (msg)=>{ const t=$("toast"); t.textContent=msg; t.style.display="block"; };
+    const hideToast = ()=>{ $("toast").style.display="none"; };
+    const debounce = (fn, ms)=>{ let t=null; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; };
+    const isoDateTimeStart = (d)=>{ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${day}T00:00:00Z`; };
+    const isoDateTimeEnd = (d)=>{ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${day}T23:59:59Z`; };
+    const monthRange = (yyyyMm)=>{ const a=String(yyyyMm||"").split("-"); const y=parseInt(a[0],10), m=parseInt(a[1],10); const start=new Date(y,m-1,1); const end=new Date(y,m,0); return {start,end}; };
+    const defaultMonth = ()=>{ const d=new Date(); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,"0"); return `${y}-${m}`; };
+    const safeODataStr = (s)=> String(s||"").replace(/'/g,"''");
+    const api = ()=>{ if(!XRM) return null; return XRM.WebApi || null; };
+
+    const TREND_CACHE = new Map();
+
+    let selectedMonth=null;
+    let selectedBU="";
+    let selectedSpec="";
+    let selectedDoctor="";
+    let allRows=[];
+    let categories=[];
+    let activeCategory="All";
+    let ddOwner=null;
+
+    const baseFilterForMonth = (monthVal)=>{
+      const {start,end}=monthRange(monthVal);
+      return `${COLS.date} ge ${isoDateTimeStart(start)} and ${COLS.date} le ${isoDateTimeEnd(end)} and statecode eq 0`;
+    };
+
+    const renderSkeleton = (n=12)=>{
+      const tb=$("tbody"); tb.innerHTML="";
+      for(let i=0;i<n;i++){ const d=document.createElement("div"); d.className="skeleton"; tb.appendChild(d); }
+    };
+
+    const ddHide = ()=>{
+      const dd=$("dd");
+      dd.style.display="none";
+      dd.innerHTML="";
+      ddOwner=null;
+    };
+
+    const ddShow = (ownerEl, items, onPick)=>{
+      const dd=$("dd");
+      ddOwner=ownerEl;
+      dd.innerHTML="";
+
+      if(!items || !items.length){
+        const empty=document.createElement("div");
+        empty.className="opt empty";
+        empty.textContent="No results";
+        dd.appendChild(empty);
+      }else{
+        for(const it of items){
+          const div=document.createElement("div");
+          div.className="opt";
+          div.innerHTML = `<div style="font-weight:950">${esc(it.title)}</div>${it.sub?`<div class="sub">${esc(it.sub)}</div>`:""}`;
+
+          div.addEventListener("pointerdown", (e)=>{
+            e.preventDefault();
+            e.stopPropagation();
+            onPick(it);
+            ddHide();
+          }, {passive:false});
+
+          dd.appendChild(div);
+        }
+      }
+
+      dd.style.display="block";
+
+      requestAnimationFrame(()=>{
+        const r=ownerEl.getBoundingClientRect();
+        const ddRect=dd.getBoundingClientRect();
+
+        const w = Math.max(260, r.width);
+        let left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+
+        const maxTop = Math.max(8, window.innerHeight - ddRect.height - 8);
+        let top = r.bottom + 6;
+        if(top > maxTop) top = Math.max(8, r.top - ddRect.height - 6);
+
+        dd.style.left = `${left}px`;
+        dd.style.top = `${top}px`;
+        dd.style.minWidth = `${w}px`;
+      });
+    };
+
+    const filterParts = (monthVal)=>{
+      const parts=[ baseFilterForMonth(monthVal) ];
+      const bu=($("bu").value||"").trim();
+      const sp=($("spec").value||"").trim();
+      const dc=($("doc").value||"").trim();
+      if(bu) parts.push(`${COLS.bu} eq '${safeODataStr(bu)}'`);
+      if(sp) parts.push(`${COLS.spec} eq '${safeODataStr(sp)}'`);
+      if(dc) parts.push(`${COLS.doc} eq '${safeODataStr(dc)}'`);
+      return parts;
+    };
+
+    const fetchBUSuggestions = async (text)=>{
+      const monthVal = $("month").value;
+      if(!monthVal) return [];
+      const t=(text||"").trim();
+
+      const parts=[ baseFilterForMonth(monthVal) ];
+      const sp=($("spec").value||"").trim();
+      const dc=($("doc").value||"").trim();
+      if(sp) parts.push(`${COLS.spec} eq '${safeODataStr(sp)}'`);
+      if(dc) parts.push(`${COLS.doc} eq '${safeODataStr(dc)}'`);
+      if(t) parts.push(`contains(${COLS.bu},'${safeODataStr(t)}')`);
+
+      const q = `?$select=${COLS.bu}&$filter=${parts.join(" and ")}&$top=5000`;
+      const res = await api().retrieveMultipleRecords(TABLE, q);
+
+      const set=new Set();
+      for(const e of (res.entities||[])){
+        const v=(e[COLS.bu]||"").trim();
+        if(v) set.add(v);
+      }
+      return Array.from(set).sort((a,b)=>a.localeCompare(b)).slice(0,25).map(v=>({title:v,value:v}));
+    };
+
+    const fetchSpecialtySuggestions = async (text)=>{
+      const monthVal = $("month").value;
+      if(!monthVal) return [];
+      const t=(text||"").trim();
+
+      const parts=[ baseFilterForMonth(monthVal) ];
+      const bu=($("bu").value||"").trim();
+      const dc=($("doc").value||"").trim();
+      if(bu) parts.push(`${COLS.bu} eq '${safeODataStr(bu)}'`);
+      if(dc) parts.push(`${COLS.doc} eq '${safeODataStr(dc)}'`);
+      if(t) parts.push(`contains(${COLS.spec},'${safeODataStr(t)}')`);
+
+      const q = `?$select=${COLS.spec}&$filter=${parts.join(" and ")}&$top=5000`;
+      const res = await api().retrieveMultipleRecords(TABLE, q);
+
+      const set=new Set();
+      for(const e of (res.entities||[])){
+        const v=(e[COLS.spec]||"").trim();
+        if(v) set.add(v);
+      }
+      return Array.from(set).sort((a,b)=>a.localeCompare(b)).slice(0,25).map(v=>({title:v,value:v}));
+    };
+
+    const fetchDoctorSuggestions = async (text)=>{
+      const monthVal = $("month").value;
+      if(!monthVal) return [];
+      const t=(text||"").trim();
+
+      const parts=[ baseFilterForMonth(monthVal) ];
+      const bu=($("bu").value||"").trim();
+      const sp=($("spec").value||"").trim();
+      if(bu) parts.push(`${COLS.bu} eq '${safeODataStr(bu)}'`);
+      if(sp) parts.push(`${COLS.spec} eq '${safeODataStr(sp)}'`);
+      if(t) parts.push(`contains(${COLS.doc},'${safeODataStr(t)}')`);
+
+      const sel = [COLS.doc,COLS.spec,COLS.bu].join(",");
+      const q = `?$select=${sel}&$filter=${parts.join(" and ")}&$top=5000`;
+      const res = await api().retrieveMultipleRecords(TABLE, q);
+
+      const map=new Map();
+      for(const e of (res.entities||[])){
+        const name=(e[COLS.doc]||"").trim();
+        if(!name) continue;
+        if(!map.has(name)){
+          map.set(name, {name, spec:(e[COLS.spec]||"").trim(), bu:(e[COLS.bu]||"").trim()});
+        }
+      }
+
+      return Array.from(map.values())
+        .sort((a,b)=>a.name.localeCompare(b.name))
+        .slice(0,25)
+        .map(d=>({title:d.name, sub:d.spec, spec:d.spec, bu:d.bu}));
+    };
+
+    const resolveDoctorIfTyped = async ()=>{
+      const txt = ($("doc").value||"").trim();
+      if(!txt) return true;
+      if(selectedDoctor && selectedDoctor===txt) return true;
+
+      const items = await fetchDoctorSuggestions(txt);
+      if(items.length===1){
+        const it=items[0];
+        selectedDoctor=it.title;
+        $("doc").value=it.title;
+        if(it.spec){ $("spec").value=it.spec; selectedSpec=it.spec; }
+        if(it.bu){ $("bu").value=it.bu; selectedBU=it.bu; }
+        return true;
+      }
+      showToast(items.length===0 ? "Doctor not found. Select from list." : "Multiple doctors match. Select from list.");
+      return false;
+    };
+
+    const fetchKpis = async (monthVal)=>{
+      const parts = filterParts(monthVal);
+      const f = parts.join(" and ");
+      const sel = [COLS.kpiName, COLS.kpiId, COLS.kpiCategory, COLS.actual, COLS.target, COLS.ach].join(",");
+      const q = `?$select=${sel}&$filter=${f}&$top=5000`;
+      const res = await api().retrieveMultipleRecords(TABLE, q);
+      return res.entities || [];
+    };
+
+    /* ✅ FIXED: trend fetch returns proper month labels (no 1/11/12, no Jan 1970) */
+    const fetchTrendFast = async (kpiGuid, monthVal)=>{
+      const bu=($("bu").value||"").trim();
+      const sp=($("spec").value||"").trim();
+      const dc=($("doc").value||"").trim();
+
+      const cacheKey = ["T",monthVal, kpiGuid||"", bu||"", sp||"", dc||""].join("||");
+      const cached = TREND_CACHE.get(cacheKey);
+      if(cached) return cached;
+
+      const [y,m]=String(monthVal).split("-").map(Number);
+      const end=new Date(y,m,0);
+      const start=new Date(y,m-(TREND_MONTHS-1),1);
+
+      const s = start.toISOString().slice(0,10);
+      const e = end.toISOString().slice(0,10);
+
+      const cond = [];
+      cond.push(`<condition attribute="statecode" operator="eq" value="0" />`);
+      cond.push(`<condition attribute="${COLS.date}" operator="on-or-after" value="${s}" />`);
+      cond.push(`<condition attribute="${COLS.date}" operator="on-or-before" value="${e}" />`);
+      cond.push(`<condition attribute="pmsegy_kpi" operator="eq" value="${kpiGuid}" />`);
+      if(bu) cond.push(`<condition attribute="${COLS.bu}" operator="eq" value="${escXml(bu)}" />`);
+      if(sp) cond.push(`<condition attribute="${COLS.spec}" operator="eq" value="${escXml(sp)}" />`);
+      if(dc) cond.push(`<condition attribute="${COLS.doc}" operator="eq" value="${escXml(dc)}" />`);
+
+      /* ✅ KEY CHANGE: group by YEAR + MONTH separately */
+      const fetchXml = `
+      <fetch aggregate="true">
+        <entity name="${TABLE}">
+          <attribute name="${COLS.date}" alias="yy" groupby="true" dategrouping="year" />
+          <attribute name="${COLS.date}" alias="mm" groupby="true" dategrouping="month" />
+
+          <attribute name="${COLS.actual}" alias="a" aggregate="sum" />
+          <attribute name="${COLS.target}" alias="t" aggregate="sum" />
+
+          <filter type="and">
+            ${cond.join("")}
+          </filter>
+
+          <order alias="yy" descending="false" />
+          <order alias="mm" descending="false" />
+        </entity>
+      </fetch>`.trim();
+
+      const q = `?fetchXml=${encodeURIComponent(fetchXml)}`;
+      const res = await api().retrieveMultipleRecords(TABLE, q);
+
+      const out = (res.entities||[]).map(r=>{
+        const year = Number(r.yy);
+        const month = Number(r.mm); // 1..12
+
+        // build a safe month label
+        let monthLabel = "";
+        if(Number.isFinite(year) && Number.isFinite(month) && month>=1 && month<=12){
+          const d = new Date(Date.UTC(year, month-1, 1));
+          monthLabel = d.toLocaleString(undefined, { month: "short", year: "numeric" });
+        }else{
+          monthLabel = `${r.yy || ""}-${String(r.mm || "").padStart(2,"0")}`;
+        }
+
+        return {
+          monthLabel,
+          actual: Number(r.a || 0),
+          target: Number(r.t || 0)
+        };
+      });
+
+      TREND_CACHE.set(cacheKey, out);
+      return out;
+    };
+
+    const catLabel = (r)=> r[`${COLS.kpiCategory}@OData.Community.Display.V1.FormattedValue`] ?? String(r[COLS.kpiCategory] ?? "Unknown");
+    const isFinancial = (label)=> String(label||"").toLowerCase()==="financial";
+
+    const renderTabs = ()=>{
+      const host=$("tabs");
+      [...host.children].forEach(el=>el.classList.toggle("active", el.textContent===activeCategory));
+      $("tableTitle").textContent = (activeCategory==="All") ? "FULL KPIs Analysis" : `KPIs - ${activeCategory}`;
+    };
+
+    const buildTabs = (rows)=>{
+      const set=new Set();
+      for(const r of rows) set.add(catLabel(r));
+      const labels = Array.from(set);
+      const fin = labels.find(x=>isFinancial(x));
+      const others = labels.filter(x=>!isFinancial(x)).sort((a,b)=>String(a).localeCompare(String(b)));
+      categories=["All"];
+      if(fin) categories.push(fin);
+      categories.push(...others);
+
+      const host=$("tabs"); host.innerHTML="";
+      for(const c of categories){
+        const t=document.createElement("div");
+        t.className="tab"+(c===activeCategory?" active":"");
+        t.textContent=c;
+        t.onclick=()=>{ activeCategory=c; renderTabs(); renderTable(); };
+        host.appendChild(t);
+      }
+      renderTabs();
+    };
+
+    const achPillClass = (ach)=>{
+      const p = Number(ach||0)*100;
+      if(p<70) return "red";
+      if(p<80) return "yellow";
+      if(p<90) return "green";
+      return "blue";
+    };
+
+    const renderTable = ()=>{
+      const tb=$("tbody"); tb.innerHTML="";
+      let rows=allRows;
+      if(activeCategory!=="All") rows=rows.filter(r => String(catLabel(r)) === activeCategory);
+
+      rows = rows.slice().sort((a,b)=>{
+        const ca=catLabel(a), cb=catLabel(b);
+        const fa=isFinancial(ca), fb=isFinancial(cb);
+        if(fa!==fb) return fa ? -1 : 1;
+
+        const la=String(ca||"").toLowerCase(), lb=String(cb||"").toLowerCase();
+        if(la!==lb) return la.localeCompare(lb);
+
+        const actA=Number(a[COLS.actual]??0), actB=Number(b[COLS.actual]??0);
+        if(actB!==actA) return actB-actA;
+
+        const na=String(a[COLS.kpiName]||""), nb=String(b[COLS.kpiName]||"");
+        return na.localeCompare(nb);
+      });
+
+      if(!rows.length){
+        tb.innerHTML=`<div style="padding:16px;color:#64748b;font-weight:950">No data.</div>`;
+        return;
+      }
+
+      for(const r of rows){
+        const kpi = r["pmsegy_kpi@OData.Community.Display.V1.FormattedValue"] || r[COLS.kpiName] || "(KPI)";
+        const kpiGuid = r[COLS.kpiId];
+        const clabel=catLabel(r);
+        const a=Number(r[COLS.actual] ?? 0);
+        const t=Number(r[COLS.target] ?? 0);
+        const ach=Number(r[COLS.ach] ?? 0);
+
+        const row=document.createElement("div");
+        row.className="row";
+        row.innerHTML=`
+          <div class="kpiName">${esc(kpi)}</div>
+          <div>${esc(clabel)}</div>
+          <div class="num">${fmtNum(a)}</div>
+          <div class="num">${fmtNum(t)}</div>
+          <div class="num"><span class="pill ${achPillClass(ach)}">${fmtPct(ach)}</span></div>
+          <div class="num"><button class="miniBtn" type="button">Trend</button></div>
+        `;
+        row.querySelector("button").onclick=()=>openTrend(kpiGuid, kpi);
+        tb.appendChild(row);
+      }
+    };
+
+    const openModal = ()=>{ $("modalBack").style.display="flex"; };
+    const closeModal = ()=>{ $("modalBack").style.display="none"; $("chartHost").innerHTML=""; $("tip").style.display="none"; };
+
+    const smoothPath = (points)=>{
+      if(points.length<2) return "";
+      let d=`M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+      for(let i=0;i<points.length-1;i++){
+        const p0 = points[i-1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i+1];
+        const p3 = points[i+2] || p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+      }
+      return d;
+    };
+
+    const svgChart = (seriesA, seriesT, labels)=>{
+      const w=920, h=360, pad=46;
+      const all=[...seriesA,...seriesT].filter(v=>Number.isFinite(v));
+      const min=Math.min(...all,0);
+      const max=Math.max(...all,1);
+      const span=(max-min)||1;
+      const x=(i)=>pad + (i*((w-pad*2)/Math.max(1,labels.length-1)));
+      const y=(v)=>(h-pad) - ((v-min)/span)*(h-pad*2);
+      const ptsA = seriesA.map((v,i)=>({x:x(i),y:y(v)}));
+      const ptsT = seriesT.map((v,i)=>({x:x(i),y:y(v)}));
+      const dA = smoothPath(ptsA);
+      const dT = smoothPath(ptsT);
+
+      let grid="";
+      for(let i=0;i<=5;i++){
+        const yy=pad + i*((h-pad*2)/5);
+        grid += `<line x1="${pad}" y1="${yy}" x2="${w-pad}" y2="${yy}" stroke="rgba(15,23,42,.08)" />`;
+      }
+
+      let xLabels="";
+      const step=Math.max(1, Math.floor(labels.length/6));
+      for(let i=0;i<labels.length;i+=step){
+        xLabels += `<text x="${x(i)}" y="${h-12}" font-size="12" fill="rgba(100,116,139,1)" text-anchor="middle">${esc(labels[i])}</text>`;
+      }
+
+      const circles = ptsA.map((p,i)=>`<circle class="pt" data-i="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.2" fill="rgba(255,255,255,.94)" stroke="rgba(214,187,141,.98)" stroke-width="3" />`).join("");
+
+      return `
+        <svg id="trendSvg" width="100%" viewBox="0 0 ${w} ${h}" style="display:block;border:1px solid rgba(15,23,42,.10);border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.44));backdrop-filter: blur(14px)">
+          ${grid}
+          <path d="${dT}" fill="none" stroke="rgba(15,23,42,.52)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="${dA}" fill="none" stroke="rgba(214,187,141,.98)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          ${circles}
+          ${xLabels}
+        </svg>`;
+    };
+
+    const placeTipExactOverPoint = (circleEl)=>{
+      const tip=$("tip");
+      const modalBody=$("modalBody");
+      const bodyRect=modalBody.getBoundingClientRect();
+      const r=circleEl.getBoundingClientRect();
+      const cx=r.left + r.width/2;
+      const cy=r.top + r.height/2;
+      tip.style.left = `${cx - bodyRect.left}px`;
+      tip.style.top = `${cy - bodyRect.top}px`;
+    };
+
+    const openTrend = async (kpiGuid, kpiName)=>{
+      if(!selectedMonth){ showToast("Select month."); return; }
+      if(!kpiGuid){ showToast("KPI missing."); return; }
+
+      hideToast();
+      $("modalTitle").textContent = `KPI Trend: ${kpiName}`;
+      $("chartHost").innerHTML = `<div style="padding:10px;color:#64748b;font-weight:950">Loading...</div>`;
+      openModal();
+
+      try{
+        const rows = await fetchTrendFast(kpiGuid, selectedMonth);
+        if(!rows.length){
+          $("chartHost").innerHTML = `<div style="padding:10px;color:#64748b;font-weight:950">No data.</div>`;
+          return;
+        }
+
+        const labels  = rows.map(r => r.monthLabel || "");
+        const seriesA = rows.map(r => Number(r.actual || 0));
+        const seriesT = rows.map(r => Number(r.target || 0));
+
+        $("chartHost").innerHTML = svgChart(seriesA, seriesT, labels);
+
+        const svg = $("chartHost").querySelector("#trendSvg");
+        const tip = $("tip");
+
+        svg.querySelectorAll("circle.pt").forEach(el=>{
+          el.addEventListener("mouseenter", ()=>{
+            const i = parseInt(el.getAttribute("data-i"),10);
+            tip.innerHTML = `${esc(labels[i])}<br>Actual: ${esc(fmtNum(seriesA[i]))}`;
+            tip.style.display="block";
+            placeTipExactOverPoint(el);
+          });
+          el.addEventListener("mousemove", ()=>{ placeTipExactOverPoint(el); });
+          el.addEventListener("mouseleave", ()=>{ tip.style.display="none"; });
+        });
+      }catch(e){
+        const msg = (e && e.message) ? e.message : String(e);
+        showToast(msg);
+        $("chartHost").innerHTML = `<div style="padding:10px;color:#64748b;font-weight:950">Failed.</div>`;
+      }
+    };
+
+    const onBUInput = debounce(async ()=>{
+      hideToast(); ddHide();
+      selectedBU = $("bu").value.trim();
+      selectedSpec=""; selectedDoctor="";
+      $("spec").value=""; $("doc").value="";
+      const txt = $("bu").value.trim();
+      if(!txt) return;
+      try{
+        const a=api();
+        if(!a){ showToast("Xrm is not available."); return; }
+        const items = await fetchBUSuggestions(txt);
+        ddShow($("bu"), items, (it)=>{
+          $("bu").value = it.value;
+          selectedBU = it.value;
+          selectedSpec=""; selectedDoctor="";
+          $("spec").value=""; $("doc").value="";
+        });
+      }catch(e){ showToast((e && e.message) ? e.message : String(e)); }
+    }, 220);
+
+    const onSpecInput = debounce(async ()=>{
+      hideToast(); ddHide();
+      selectedSpec = $("spec").value.trim();
+      selectedDoctor=""; $("doc").value="";
+      const txt = $("spec").value.trim();
+      if(!txt) return;
+      try{
+        const a=api();
+        if(!a){ showToast("Xrm is not available."); return; }
+        const items = await fetchSpecialtySuggestions(txt);
+        ddShow($("spec"), items, (it)=>{
+          $("spec").value = it.value;
+          selectedSpec = it.value;
+          selectedDoctor=""; $("doc").value="";
+        });
+      }catch(e){ showToast((e && e.message) ? e.message : String(e)); }
+    }, 220);
+
+    const onDocInput = debounce(async ()=>{
+      hideToast(); ddHide();
+      selectedDoctor="";
+      const txt = $("doc").value.trim();
+      if(!txt || txt.length<2) return;
+      try{
+        const a=api();
+        if(!a){ showToast("Xrm is not available."); return; }
+        const items = await fetchDoctorSuggestions(txt);
+        ddShow($("doc"), items, (it)=>{
+          selectedDoctor=it.title;
+          $("doc").value=it.title;
+          if(it.bu){ $("bu").value=it.bu; selectedBU=it.bu; }
+          if(it.spec){ $("spec").value=it.spec; selectedSpec=it.spec; }
+        });
+      }catch(e){ showToast((e && e.message) ? e.message : String(e)); }
+    }, 240);
+
+    const openBU = async ()=>{
+      hideToast(); ddHide();
+      try{
+        const items = await fetchBUSuggestions(($("bu").value||"").trim());
+        ddShow($("bu"), items, (it)=>{
+          $("bu").value=it.value; selectedBU=it.value;
+          selectedSpec=""; selectedDoctor=""; $("spec").value=""; $("doc").value="";
+        });
+      }catch(e){ showToast((e && e.message)?e.message:String(e)); }
+    };
+    const openSpec = async ()=>{
+      hideToast(); ddHide();
+      try{
+        const items = await fetchSpecialtySuggestions(($("spec").value||"").trim());
+        ddShow($("spec"), items, (it)=>{
+          $("spec").value=it.value; selectedSpec=it.value;
+          selectedDoctor=""; $("doc").value="";
+        });
+      }catch(e){ showToast((e && e.message)?e.message:String(e)); }
+    };
+    const openDoc = async ()=>{
+      hideToast(); ddHide();
+      try{
+        const items = await fetchDoctorSuggestions(($("doc").value||"").trim());
+        ddShow($("doc"), items, (it)=>{
+          selectedDoctor=it.title; $("doc").value=it.title;
+          if(it.bu){ $("bu").value=it.bu; selectedBU=it.bu; }
+          if(it.spec){ $("spec").value=it.spec; selectedSpec=it.spec; }
+        });
+      }catch(e){ showToast((e && e.message)?e.message:String(e)); }
+    };
+
+    const onSearch = async ()=>{
+      hideToast(); ddHide();
+      const a = api();
+      if(!a){ showToast("Xrm is not available."); return; }
+
+      selectedMonth = $("month").value;
+      if(!selectedMonth){ showToast("Select month."); return; }
+
+      selectedBU = $("bu").value.trim();
+      selectedSpec = $("spec").value.trim();
+      selectedDoctor = $("doc").value.trim();
+
+      const ok = await resolveDoctorIfTyped();
+      if(!ok) return;
+
+      if(!selectedBU && !selectedSpec && !selectedDoctor){
+        showToast("Select Business Unit or Specialty or Doctor.");
+        return;
+      }
+
+      renderSkeleton(12);
+      try{
+        const rows = await fetchKpis(selectedMonth);
+        allRows = rows;
+        activeCategory="All";
+        buildTabs(allRows);
+        renderTable();
+      }catch(e){
+        showToast((e && e.message) ? e.message : String(e));
+        $("tbody").innerHTML = `<div style="padding:16px;color:#64748b;font-weight:950">Failed.</div>`;
+      }
+    };
+
+    const onReset = ()=>{
+      hideToast(); ddHide();
+      selectedMonth = defaultMonth();
+      selectedBU=""; selectedSpec=""; selectedDoctor="";
+      allRows=[]; activeCategory="All";
+
+      $("month").value = selectedMonth;
+      $("bu").value = "";
+      $("spec").value = "";
+      $("doc").value = "";
+
+      $("tabs").innerHTML = "";
+      $("tableTitle").textContent = "FULL KPIs Analysis";
+      $("tbody").innerHTML = `<div style="padding:16px;color:#64748b;font-weight:950">Select month and BU / Specialty / Doctor.</div>`;
+    };
+
+    const init = ()=>{
+      $("month").value = defaultMonth();
+      $("tbody").innerHTML = `<div style="padding:16px;color:#64748b;font-weight:950">Select month and BU / Specialty / Doctor.</div>`;
+      $("tableTitle").textContent = "FULL KPIs Analysis";
+      if(!XRM) { showToast("Xrm is not available."); return; }
+    };
+
+    $("month").addEventListener("change", ()=>{
+      ddHide();
+      selectedBU=""; selectedSpec=""; selectedDoctor="";
+      $("bu").value=""; $("spec").value=""; $("doc").value="";
+    });
+
+    $("bu").addEventListener("input", onBUInput);
+    $("spec").addEventListener("input", onSpecInput);
+    $("doc").addEventListener("input", onDocInput);
+
+    $("buOpen").addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); openBU(); }, {passive:false});
+    $("specOpen").addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); openSpec(); }, {passive:false});
+    $("docOpen").addEventListener("pointerdown", (e)=>{ e.preventDefault(); e.stopPropagation(); openDoc(); }, {passive:false});
+
+    $("bu").addEventListener("pointerdown", (e)=>{ if($("dd").style.display!=="block") { e.stopPropagation(); openBU(); } }, {passive:false});
+    $("spec").addEventListener("pointerdown", (e)=>{ if($("dd").style.display!=="block") { e.stopPropagation(); openSpec(); } }, {passive:false});
+    $("doc").addEventListener("pointerdown", (e)=>{ if($("dd").style.display!=="block") { e.stopPropagation(); openDoc(); } }, {passive:false});
+
+    document.addEventListener("pointerdown", (e)=>{
+      const dd=$("dd");
+      if(dd.style.display==="block"){
+        if(e.target!==ddOwner && !dd.contains(e.target) && !["buOpen","specOpen","docOpen"].includes(e.target.id)) ddHide();
+      }
+    });
+
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") ddHide(); });
+
+    $("searchBtn").addEventListener("click", onSearch);
+    $("resetBtn").addEventListener("click", onReset);
+
+    $("closeModal").addEventListener("click", closeModal);
+    $("modalBack").addEventListener("pointerdown", (e)=>{ if(e.target.id==="modalBack") closeModal(); });
+
+    window.addEventListener("error", (e)=>{ showToast(e.message || "Error"); });
+
+    init();
+  </script>
+</body>
+</html>
